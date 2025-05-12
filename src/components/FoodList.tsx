@@ -1,0 +1,1 @@
+// Delete this file as it's duplicated and moved to src/components/food/FoodList.tsx
