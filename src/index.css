@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base responsive styles */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    height: -webkit-fill-available;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Improve text readability on mobile */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Responsive grid layouts */
+  .responsive-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* Mobile-first container padding */
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Improved touch targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Camera and scanner styles */
+.camera-container {
+  @apply relative w-full;
+  aspect-ratio: 4/3;
+}
+
+.scanner-frame {
+  @apply absolute inset-0 flex items-center justify-center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive modal styles */
+.modal-container {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6;
+}
+
+.modal-content {
+  @apply w-full max-w-md mx-auto bg-white rounded-lg shadow-xl;
+  @apply max-h-[90vh] overflow-y-auto;
+}
+
+/* Improved form elements for touch */
+@layer components {
+  .form-input {
+    @apply w-full rounded-lg border-gray-300 shadow-sm;
+    @apply focus:border-blue-500 focus:ring-blue-500;
+    @apply min-h-[44px]; /* Better touch targets */
+  }
+
+  .form-select {
+    @apply form-input appearance-none pr-8;
+  }
+
+  .form-button {
+    @apply px-4 py-2 rounded-lg font-medium;
+    @apply min-h-[44px] min-w-[44px];
+    @apply active:transform active:scale-95;
+    @apply transition-all duration-200;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
