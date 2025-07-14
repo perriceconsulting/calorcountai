@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../../../lib/supabase';
-import { useToastStore } from '../../../components/feedback/Toast';
+import { useToastStore } from '../../../store/toastStore';
 import { useProfile } from './useProfile';
 
 export function useAuth() {

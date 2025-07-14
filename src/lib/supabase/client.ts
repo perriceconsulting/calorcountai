@@ -3,6 +3,8 @@ import type { Database } from '../../types/supabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key:', supabaseKey);
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
@@ -51,7 +53,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
 
 // Initialize session recovery
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+  // Only handle sign-out events (USER_DELETED removed to match AuthChangeEvent types)
+  if (event === 'SIGNED_OUT') {
     // Clear all auth data
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('sb-access-token');

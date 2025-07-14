@@ -1,9 +1,9 @@
-import React from 'react';
 import { Users } from 'lucide-react';
 import { ChallengeList } from './ChallengeList';
 import { CommunityStats } from './CommunityStats';
 import { CreateChallengeButton } from './CreateChallengeButton';
 import { PageHeader } from '../../../components/shared/PageHeader';
+// Shared recipes feed removed per request
 
 export function CommunityPage() {
   return (

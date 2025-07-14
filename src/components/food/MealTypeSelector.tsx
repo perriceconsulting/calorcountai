@@ -1,10 +1,9 @@
-import React from 'react';
 import { Coffee, Sun, Moon, Apple } from 'lucide-react';
 import { MEAL_TYPES, MEAL_LABELS, type MealType } from '../../types/meals';
 
 interface MealTypeSelectorProps {
-  value: MealType;
-  onChange: (type: MealType) => void;
+  value: MealType | null;
+  onChange: (type: MealType | null) => void;
 }
 
 const MEAL_ICONS = {

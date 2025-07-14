@@ -26,6 +26,12 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
       throw new Error('OpenAI API key is missing');
     }
 
+    // Debug: log prompt details
+    console.log('OpenAI request:', {
+      model: OPENAI_CONFIG.model,
+      prompt: OPENAI_CONFIG.promptTemplate,
+      imageSnippet: base64Image.slice(0, 50) + '...' // truncated
+    });
     const response = await openai.chat.completions.create({
       model: OPENAI_CONFIG.model,
       messages: [
@@ -46,9 +52,14 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
         }
       ],
       max_tokens: OPENAI_CONFIG.maxTokens,
-      temperature: 0.3
+      temperature: 0  // deterministic output for consistent macro estimates
     });
 
+    // Debug: log raw response from OpenAI
+    console.log('OpenAI raw response:', response);
+    // Debug: inspect the first choice object and message field
+    console.log('OpenAI choice[0]:', response.choices[0]);
+    console.log('OpenAI choice[0].message:', response.choices[0]?.message);
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error('No content in OpenAI response');

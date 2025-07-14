@@ -10,6 +10,7 @@ export interface MacroNutrients {
 export interface FoodAnalysis {
   description: string;
   macros: MacroNutrients;
+  id?: string;  // optional DB record ID
   imageUrl?: string;
   timestamp?: string;
   mealType?: MealType;

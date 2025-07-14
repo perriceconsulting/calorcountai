@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './features/auth/components/AuthProvider';
 import { AuthGuard } from './features/auth/components/AuthGuard';
@@ -21,12 +20,12 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/signup" element={<SignUpForm />} />
-          
+
           {/* Protected routes */}
           <Route element={<AuthGuard />}>
-            <Route path="/onboarding" element={<OnboardingWizard />} />
-            
+            {/* Wrap everything in Layout so navigation is client-side only */}
             <Route element={<Layout />}>
+              <Route path="/onboarding" element={<OnboardingWizard />} />
               <Route path="/" element={<TrackingPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />

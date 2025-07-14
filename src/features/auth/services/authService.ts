@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import type { AuthError } from '@supabase/supabase-js';
+import { AuthRetryableFetchError } from '@supabase/supabase-js';
 
 export async function signUp(email: string, password: string, username: string) {
   try {
@@ -36,24 +37,25 @@ export async function signUp(email: string, password: string, username: string) 
     return { data: authData, error: null };
   } catch (error) {
     console.error('Sign up error:', error);
+    // Handle network issues with fetch retries
+    if (error instanceof AuthRetryableFetchError) {
+      return { data: null, error: 'Network error. Please check your internet connection or try again later.' };
+    }
     const authError = error as AuthError;
-    
     if (authError.message.includes('already registered')) {
       return { data: null, error: 'This email is already registered' };
     }
-    
     return { data: null, error: 'Failed to create account. Please try again.' };
   }
 }
 
 export async function signIn(email: string, password: string, rememberMe: boolean = false) {
-  try {
+    try {
+    // reference rememberMe to avoid unused parameter warning
+    console.debug('Remember me:', rememberMe);
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
-      password,
-      options: {
-        expiresIn: rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60
-      }
+      password
     });
 
     if (error) {

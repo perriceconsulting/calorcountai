@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
@@ -10,84 +10,92 @@ import { UploadStatus } from './UploadStatus';
 import type { MealType } from '../../types/meals';
 
 export function ImageUpload() {
-  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
+  // No default meal type: require user selection
+  const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'uploading' | 'analyzing' | 'error' | null>(null);
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = (file: File) => {
+    // Ensure a meal type is selected before uploading
+    if (!selectedMealType) {
+      addToast('Please select a meal type before uploading', 'error');
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       addToast('Please upload an image file', 'error');
       return;
     }
 
-    try {
-      setUploadStatus('uploading');
-      setIsAnalyzing(true);
-      
-      const reader = new FileReader();
-      
-      reader.onload = async () => {
-        try {
-          const imageData = reader.result as string;
-          setUploadStatus('analyzing');
-          
-          // Upload to storage first
-          const imageUrl = await uploadFoodImage(imageData);
-          if (!imageUrl) {
-            throw new Error('Failed to upload image');
-          }
+    // Initialize reader and states
+    const reader = new FileReader();
+    setUploadStatus('uploading');
+    setIsAnalyzing(true);
 
-          const analysis = await analyzeFoodImage(imageData);
-          if (!analysis) {
-            throw new Error('Could not analyze the food image');
-          }
+    reader.onload = async () => {
+      try {
+        const imageData = reader.result as string;
+        setUploadStatus('analyzing');
 
-          await addFoodEntry({
-            ...analysis,
-            imageUrl,
-            timestamp: new Date().toISOString(),
-            mealType: selectedMealType,
-          });
+        // Upload to storage first
+        const imageUrl = await uploadFoodImage(imageData);
+        if (!imageUrl) throw new Error('Failed to upload image');
 
-          addToast('Food analyzed and added successfully', 'success');
-        } catch (error) {
-          setUploadStatus('error');
-          setError('Failed to analyze food image. Please try again.');
-          addToast('Failed to analyze food image', 'error');
-          console.error('Error analyzing image:', error);
-        }
-      };
+        const analysis = await analyzeFoodImage(imageData);
+        if (!analysis) throw new Error('Could not analyze the food image');
 
-      reader.onerror = () => {
+        await addFoodEntry({
+          ...analysis,
+          imageUrl,
+          timestamp: new Date().toISOString(),
+          mealType: selectedMealType,
+        });
+        addToast('Food analyzed and added successfully', 'success');
+      } catch (err) {
         setUploadStatus('error');
-        setError('Failed to read image file');
-        addToast('Failed to read image file', 'error');
-      };
+        setError('Failed to analyze food image. Please try again.');
+        addToast('Failed to analyze food image', 'error');
+        console.error('Error analyzing image:', err);
+      } finally {
+        // schedule state reset after analysis/upload completes
+        const reset = () => {
+          setUploadStatus(null);
+          setError(undefined);
+          setIsAnalyzing(false);
+        };
+        setTimeout(reset, 3000);
+      }
+    };
 
-      reader.readAsDataURL(file);
-    } finally {
-      setTimeout(() => {
+    reader.onerror = () => {
+      setUploadStatus('error');
+      setError('Failed to read image file');
+      addToast('Failed to read image file', 'error');
+      // schedule state reset after error
+      const resetError = () => {
         setUploadStatus(null);
         setError(undefined);
         setIsAnalyzing(false);
-      }, 3000);
-    }
+      };
+      setTimeout(resetError, 3000);
+    };
+
+    reader.readAsDataURL(file);
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // Handle file drop
+  const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       handleUpload(file);
     }
-  }, []);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png']
-    },
+    disabled: !selectedMealType,
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
     maxFiles: 1,
     multiple: false
   });
@@ -108,6 +116,11 @@ export function ImageUpload() {
         </div>
         
         <UploadStatus status={uploadStatus} error={error} />
+        {!selectedMealType && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+            <p className="text-gray-500">Select a meal type to enable upload</p>
+          </div>
+        )}
       </div>
     </div>
   );

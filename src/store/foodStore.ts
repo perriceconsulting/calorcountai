@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { FoodAnalysis } from '../types/food';
-import { useToastStore } from '../components/feedback/Toast';
+import { useToastStore } from './toastStore';
 
 interface FoodStore {
   foodEntries: FoodAnalysis[];
@@ -9,6 +9,7 @@ interface FoodStore {
   setIsAnalyzing: (status: boolean) => void;
   addFoodEntry: (entry: FoodAnalysis) => Promise<void>;
   fetchEntries: () => Promise<void>;
+  deleteFoodEntry: (id: string, imageUrl?: string) => Promise<void>;
 }
 
 export const useFoodStore = create<FoodStore>((set, get) => ({
@@ -36,6 +37,8 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
         }]);
 
       if (error) throw error;
+      // Refresh local entries so UI updates immediately
+      await get().fetchEntries();
     } catch (error) {
       useToastStore.getState().addToast(
         'Failed to save food entry',
@@ -60,6 +63,7 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
 
       if (entries) {
         const foodEntries: FoodAnalysis[] = entries.map(entry => ({
+          id: entry.id.toString(),
           description: entry.description,
           macros: entry.macros,
           mealType: entry.meal_type,
@@ -71,7 +75,35 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
     } catch (error) {
       console.error('Error fetching entries:', error);
     }
-  }
+  },
+  // Delete entry from database and optional image from storage
+  deleteFoodEntry: async (id, imageUrl) => {
+    try {
+      // Remove entry row
+      const { error } = await supabase
+        .from('food_entries')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      // Remove image from storage if present
+      if (imageUrl) {
+        const key = imageUrl.split('/').pop();
+        if (key) {
+          const { error: storageError } = await supabase
+            .storage
+            .from('food-images')
+            .remove([key]);
+          if (storageError) console.error('Error removing image from storage:', storageError);
+        }
+      }
+      useToastStore.getState().addToast('Entry deleted', 'success');
+      // Refresh entries
+      await get().fetchEntries();
+    } catch (err) {
+      useToastStore.getState().addToast('Failed to delete entry', 'error');
+      console.error('Error deleting food entry:', err);
+    }
+  },
 }));
 
 // Set up real-time subscription

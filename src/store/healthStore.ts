@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../types/health';
-import { useToastStore } from '../components/feedback/Toast';
+import { useToastStore } from './toastStore';
 
 interface HealthStore {
   waterIntake: number;

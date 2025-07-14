@@ -15,7 +15,6 @@ interface MacroGoalsEditorProps {
 export function MacroGoalsEditor({ onClose }: MacroGoalsEditorProps) {
   const { selectedDate } = useDateStore();
   const { 
-    defaultGoals,
     getGoalsForDate,
     setDefaultGoals,
     setGoalsForDate,
@@ -73,7 +72,65 @@ export function MacroGoalsEditor({ onClose }: MacroGoalsEditorProps) {
         <MacroPresets onSelect={setNewGoals} />
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-          {/* Existing macro sliders remain the same */}
+          {/* Macro goal sliders */}
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="calories" className="block text-sm font-medium text-gray-700">
+                Calories: {newGoals.calories} kcal
+              </label>
+              <input
+                id="calories"
+                type="range"
+                min={0}
+                max={currentGoals.calories * 2}
+                value={newGoals.calories}
+                onChange={(e) => setNewGoals({ ...newGoals, calories: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="protein" className="block text-sm font-medium text-gray-700">
+                Protein: {newGoals.protein} g
+              </label>
+              <input
+                id="protein"
+                type="range"
+                min={0}
+                max={currentGoals.protein * 2}
+                value={newGoals.protein}
+                onChange={(e) => setNewGoals({ ...newGoals, protein: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="fat" className="block text-sm font-medium text-gray-700">
+                Fat: {newGoals.fat} g
+              </label>
+              <input
+                id="fat"
+                type="range"
+                min={0}
+                max={currentGoals.fat * 2}
+                value={newGoals.fat}
+                onChange={(e) => setNewGoals({ ...newGoals, fat: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="carbs" className="block text-sm font-medium text-gray-700">
+                Carbs: {newGoals.carbs} g
+              </label>
+              <input
+                id="carbs"
+                type="range"
+                min={0}
+                max={currentGoals.carbs * 2}
+                value={newGoals.carbs}
+                onChange={(e) => setNewGoals({ ...newGoals, carbs: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+          </div>
           
           <div className="flex items-center gap-2 mt-4">
             <input

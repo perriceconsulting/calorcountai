@@ -2,83 +2,59 @@ import { useMemo } from 'react';
 import { useFoodStore } from '../store/foodStore';
 import { useGoalsStore } from '../store/goalsStore';
 import type { DayData } from '../types/calendar';
+import type { FoodAnalysis } from '../types/food';
 import { getGoalStatus } from '../utils/macroCalculations';
 
-export function useCalendarData(currentDate: Date) {
-  const { foodEntries } = useFoodStore();
-  const { goals } = useGoalsStore();
+export function useCalendarData(currentDate: Date): { days: DayData[]; monthYear: string } {
+  const foodEntries = useFoodStore(s => s.foodEntries);
+  const defaultGoals = useGoalsStore(s => s.defaultGoals);
 
   return useMemo(() => {
+    // Group entries by date (YYYY-MM-DD)
+    const byDate = new Map<string, FoodAnalysis[]>();
+    foodEntries.forEach(e => {
+      const key = e.timestamp!.slice(0, 10);
+      const arr = byDate.get(key) || [];
+      arr.push(e);
+      byDate.set(key, arr);
+    });
+
+    // Month grid calculations
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    
-    // Calculate days needed from previous month
-    const daysFromPrevMonth = firstDay.getDay();
-    const daysFromNextMonth = 6 - lastDay.getDay();
-    
+    const padPrev = firstDay.getDay();
+    const padNext = 6 - lastDay.getDay();
     const days: DayData[] = [];
-    
-    // Add days from previous month
-    const prevMonth = new Date(year, month - 1);
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = prevMonthLastDay - daysFromPrevMonth + 1; i <= prevMonthLastDay; i++) {
-      days.push({
-        date: new Date(prevMonth.getFullYear(), prevMonth.getMonth(), i),
-        isCurrentMonth: false,
-        hasData: false,
-        goalsStatus: 'none',
-        macros: { calories: 0, protein: 0, fat: 0, carbs: 0 },
-      });
+
+    // Previous-month padding
+    for (let i = padPrev; i > 0; i--) {
+      const d = new Date(year, month, 1 - i);
+      days.push({ date: d, isCurrentMonth: false, hasData: false, goalsStatus: 'none', macros: { calories:0, protein:0, fat:0, carbs:0 } });
     }
-    
-    // Add days from current month
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      const date = new Date(year, month, i);
-      const dayEntries = foodEntries.filter(entry => {
-        const entryDate = new Date(entry.timestamp!);
-        return (
-          entryDate.getFullYear() === date.getFullYear() &&
-          entryDate.getMonth() === date.getMonth() &&
-          entryDate.getDate() === date.getDate()
-        );
-      });
-      
-      const macros = dayEntries.reduce(
-        (acc, entry) => ({
-          calories: acc.calories + entry.macros.calories,
-          protein: acc.protein + entry.macros.protein,
-          fat: acc.fat + entry.macros.fat,
-          carbs: acc.carbs + entry.macros.carbs,
-        }),
-        { calories: 0, protein: 0, fat: 0, carbs: 0 }
+
+    // Current month
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, month, d);
+      const key = date.toISOString().slice(0, 10);
+      const list = byDate.get(key) || [];
+      const macros = list.reduce(
+        (acc, e) => ({ calories: acc.calories + e.macros.calories, protein: acc.protein + e.macros.protein, fat: acc.fat + e.macros.fat, carbs: acc.carbs + e.macros.carbs }),
+        { calories:0, protein:0, fat:0, carbs:0 }
       );
-      
-      days.push({
-        date,
-        isCurrentMonth: true,
-        hasData: dayEntries.length > 0,
-        goalsStatus: getGoalStatus(macros, goals),
-        macros,
-      });
+      days.push({ date, isCurrentMonth: true, hasData: list.length > 0, goalsStatus: getGoalStatus(macros, defaultGoals), macros });
     }
-    
-    // Add days from next month
-    const nextMonth = new Date(year, month + 1);
-    for (let i = 1; i <= daysFromNextMonth; i++) {
-      days.push({
-        date: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), i),
-        isCurrentMonth: false,
-        hasData: false,
-        goalsStatus: 'none',
-        macros: { calories: 0, protein: 0, fat: 0, carbs: 0 },
-      });
+
+    // Next-month padding
+    for (let i = 1; i <= padNext; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({ date: d, isCurrentMonth: false, hasData: false, goalsStatus: 'none', macros: { calories:0, protein:0, fat:0, carbs:0 } });
     }
-    
+
     return {
       days,
-      monthYear: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      monthYear: currentDate.toLocaleDateString('en-US', { month:'long', year:'numeric' })
     };
-  }, [currentDate, foodEntries, goals]);
+  }, [currentDate, foodEntries, defaultGoals]);
 }
