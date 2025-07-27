@@ -157,24 +157,6 @@ export function ImageUpload() {
         <UploadStatus status={uploadStatus} error={error} />
       </div>
 
-      {/* Desktop: drag & drop */}
-      <div className="hidden md:block relative" {...getRootProps()}>
-        <input {...getInputProps()} />
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
-          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm text-gray-600">
-            {isDragActive
-              ? 'Drop the image here'
-              : 'Drag & drop a food image, or click to select'}
-          </p>
-        </div>
-        <UploadStatus status={uploadStatus} error={error} />
-        {!selectedMealType && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
-            <p className="text-gray-500">Select a meal type to enable upload</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
