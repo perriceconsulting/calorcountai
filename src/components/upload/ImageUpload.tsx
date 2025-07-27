@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
@@ -16,6 +16,11 @@ export function ImageUpload() {
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
+  // notify user of ongoing upload/analyze steps
+  useEffect(() => {
+    if (uploadStatus === 'uploading') addToast('Uploading image...', 'info');
+    if (uploadStatus === 'analyzing') addToast('Analyzing your food...', 'info');
+  }, [uploadStatus]);
 
   const handleUpload = (file: File) => {
     // Ensure a meal type is selected before uploading
@@ -121,12 +126,16 @@ export function ImageUpload() {
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
       {/* Mobile: camera capture button */}
-      <div className="block md:hidden space-y-2">
+      <div className="relative block md:hidden space-y-2">
         <label
           htmlFor="mobile-file-input"
           className="w-full bg-blue-600 text-white py-2 rounded-lg text-center cursor-pointer disabled:opacity-50"
         >
-          {uploadStatus ? 'Processing...' : 'Take Photo'}
+          {uploadStatus === 'uploading'
+            ? 'Uploading image...'
+            : uploadStatus === 'analyzing'
+            ? 'Analyzing your food...'
+            : 'Take Photo'}
         </label>
         <input
           id="mobile-file-input"
