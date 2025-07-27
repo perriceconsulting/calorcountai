@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useDeviceCapabilities } from '../../hooks/useDeviceCapabilities';
 import { compressImage } from '../../utils/imageCompression';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -18,7 +17,6 @@ export function ImageUpload() {
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
 
-  const { isMobile } = useDeviceCapabilities();
   const handleUpload = (file: File) => {
     // Ensure a meal type is selected before uploading
     if (!selectedMealType) {
@@ -128,7 +126,7 @@ export function ImageUpload() {
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
       <div className="relative" {...getRootProps()}>
-        <input {...getInputProps({ capture: isMobile ? 'environment' : undefined })} />
+        <input {...getInputProps()} />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
