@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { compressImage } from '../../utils/imageCompression';
-// import { useDropzone } from 'react-dropzone';
+import { useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
 import { analyzeFoodImage } from '../../services/openai';
@@ -11,20 +10,11 @@ import { UploadStatus } from './UploadStatus';
 import type { MealType } from '../../types/meals';
 
 export function ImageUpload() {
-  // No default meal type: require user selection
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'uploading' | 'analyzing' | 'error' | null>(null);
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
-  // preview state for mobile confirm
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
-  const pendingFileRef = useRef<File | null>(null);
-  // notify user of ongoing upload/analyze steps
-  useEffect(() => {
-    if (uploadStatus === 'uploading') addToast('Uploading image...', 'info');
-    if (uploadStatus === 'analyzing') addToast('Analyzing your food...', 'info');
-  }, [uploadStatus]);
 
   const handleUpload = (file: File) => {
     // Ensure a meal type is selected before uploading
@@ -43,13 +33,7 @@ export function ImageUpload() {
     setIsAnalyzing(true);
 
     reader.onload = async () => {
-        let imageData = reader.result as string;
-        // compress large images for faster upload/analysis
-        try {
-          imageData = await compressImage(imageData, 500 * 1024); // target ~500KB
-        } catch (e) {
-          console.warn('Image compression failed, using original', e);
-        }
+        const imageData = reader.result as string;
         // Step 1: Upload
         let imageUrl: string;
         try {
@@ -115,46 +99,39 @@ export function ImageUpload() {
     reader.readAsDataURL(file);
   };
 
-  // Handle file drop
+
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) {
-      handleUpload(file);
-    }
+    if (file) handleUpload(file);
   };
-
-  // const { getRootProps, getInputProps, isDragActive } = useDropzone({
-  //   onDrop,
-  //   disabled: !selectedMealType,
-  //   accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
-  //   maxFiles: 1,
-  //   multiple: false
-  // });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    disabled: !selectedMealType,
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
+    maxFiles: 1,
+    multiple: false,
+  });
 
   return (
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
-      {/* File upload: simple selector */}
-      <div className="relative">
-        <input
-          type="file"
-          accept="image/*"
-          disabled={!selectedMealType || !!uploadStatus}
-          className="w-full h-40 opacity-0 absolute inset-0 cursor-pointer"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handleUpload(file);
-            e.target.value = '';
-          }}
-        />
-        <div className="border-2 border-dashed border-gray-300 rounded-lg h-40 flex flex-col items-center justify-center text-center">
-          <Upload className="h-12 w-12 text-gray-400" />
+      <div className="relative" {...getRootProps()}>
+        <input {...getInputProps()} capture="environment" />
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+          <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
-            {uploadStatus ? 'Processing...' : 'Click to select a photo'}
+            {isDragActive
+              ? 'Drop the image here'
+              : 'Drag & drop a food image, or click to select'}
           </p>
         </div>
         <UploadStatus status={uploadStatus} error={error} />
+        {!selectedMealType && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+            <p className="text-gray-500">Select a meal type to enable upload</p>
+          </div>
+        )}
       </div>
 
     </div>
