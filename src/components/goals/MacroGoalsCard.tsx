@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Lightbulb } from 'lucide-react';
 import { useGoalsStore } from '../../store/goalsStore';
 import { useDateStore } from '../../store/dateStore';
 import { MacroDisplay } from './MacroDisplay';
 import { MacroGoalsEditor } from './MacroGoalsEditor';
 import { InfoTooltip } from '../accessibility/Tooltip';
-import { useDeviceCapabilities } from '../../hooks/useDeviceCapabilities';
+// import device capabilities if needed later
+import { fetchSuggestions } from '../../services/suggestionsService';
 
 export function MacroGoalsCard() {
   const [isEditing, setIsEditing] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
   const { selectedDate } = useDateStore();
   const { getGoalsForDate, hasCustomGoalsForDate } = useGoalsStore();
-  const { isMobile } = useDeviceCapabilities();
   const goals = getGoalsForDate(selectedDate);
 
   if (!goals) {
@@ -54,9 +56,41 @@ export function MacroGoalsCard() {
 
       <MacroDisplay goals={goals} />
 
+      {/* Suggestion banner */}
+      <div
+        className="mt-4 p-2 bg-blue-50 text-blue-700 rounded-lg cursor-pointer flex items-center gap-2"
+        onClick={async () => {
+          setSuggestLoading(true);
+          try {
+            const items = await fetchSuggestions('more protein-rich foods');
+            setSuggestions(items);
+          } catch (err) {
+            console.error('Failed to fetch suggestions:', err);
+          } finally {
+            setSuggestLoading(false);
+          }
+        }}
+      >
+        {suggestLoading ? (
+          <LoadingSpinner size="sm" className="text-blue-600" />
+        ) : (
+          <Lightbulb className="w-5 h-5" />
+        )}
+        Try to include more protein-rich foods
+      </div>
+      {/* Inline suggestions list */}
+      {suggestions.length > 0 && (
+        <ul className="list-disc list-inside mt-2 text-gray-700">
+          {suggestions.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>
+      )}
+
       {isEditing && (
         <MacroGoalsEditor onClose={() => setIsEditing(false)} />
       )}
     </div>
   );
 }
+import { LoadingSpinner } from '../shared/LoadingSpinner';

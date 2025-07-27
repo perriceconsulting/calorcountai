@@ -36,25 +36,70 @@ export async function uploadFoodImage(dataURL: string): Promise<string | null> {
     
     const blob = new Blob(byteArrays, { type: `image/${fileType}` });
 
+    // Optionally compress before uploading
+    let uploadBlob = blob;
+    try {
+      // Convert blob to data URL for compressImage
+      const blobToDataUrl = (blob: Blob): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to convert blob to data URL'));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+      const dataUrl = await blobToDataUrl(blob);
+      const maxSize = 500 * 1024; // 500KB, adjust as needed
+      const compressed = await compressImage(dataUrl, maxSize);
+      if (typeof compressed === 'string') {
+        // compressed is a DataURL string; convert to Blob via fetch
+        try {
+          const response = await fetch(compressed);
+          uploadBlob = await response.blob();
+        } catch (convErr) {
+          console.warn('Failed to convert compressed dataURL to Blob, using original blob', convErr);
+          uploadBlob = blob;
+        }
+      } else {
+        uploadBlob = compressed;
+      }
+    } catch (err) {
+      console.warn('Image compression failed, using original blob', err);
+    }
+
     // Upload file
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('food-images')
-      .upload(fileName, blob, {
+      .upload(fileName, uploadBlob, {
         contentType: `image/${fileType}`,
         cacheControl: '3600',
         upsert: false
       });
-
-    if (error) throw error;
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError.message, uploadError);
+      throw new Error(uploadError.message);
+    }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    // Get the public URL (bucket is public)
+    const { data } = supabase.storage
       .from('food-images')
       .getPublicUrl(fileName);
-
-    return publicUrl;
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    return null;
+    if (!data?.publicUrl) {
+      throw new Error('Failed to get public URL for image');
+    }
+    // Debug: log raw public URL to troubleshoot path issues
+    console.debug('Storage publicUrl:', data.publicUrl);
+    return data.publicUrl;
+  } catch (error: any) {
+    console.error('Error uploading image:', error.message ?? error);
+    // Rethrow so callers receive the error details
+    throw new Error(error.message || 'Image upload failed');
   }
 }

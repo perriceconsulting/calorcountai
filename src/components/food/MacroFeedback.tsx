@@ -23,12 +23,6 @@ export function MacroFeedback() {
       });
     }
 
-    if (consumed.protein < goals.protein * 0.8) {
-      feedback.push({
-        type: 'info',
-        message: 'Try to include more protein-rich foods',
-      });
-    }
 
     if (consumed.fat > goals.fat * 1.2) {
       feedback.push({

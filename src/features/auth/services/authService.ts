@@ -51,8 +51,7 @@ export async function signUp(email: string, password: string, username: string) 
 
 export async function signIn(email: string, password: string, rememberMe: boolean = false) {
     try {
-    // reference rememberMe to avoid unused parameter warning
-    console.debug('Remember me:', rememberMe);
+    // Sign in with Supabase auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password
@@ -65,6 +64,17 @@ export async function signIn(email: string, password: string, rememberMe: boolea
       throw error;
     }
 
+    // If user chose not to be remembered, move auth tokens to sessionStorage so they clear on tab close
+    if (data.session && !rememberMe) {
+      // Transfer relevant tokens
+      ['supabase.auth.token', 'sb-access-token', 'sb-refresh-token', 'supabase.auth.refreshToken', 'supabase.auth.accessToken'].forEach((key) => {
+        const value = window.localStorage.getItem(key);
+        if (value) {
+          window.sessionStorage.setItem(key, value);
+          window.localStorage.removeItem(key);
+        }
+      });
+    }
     return { data, error: null };
   } catch (error) {
     console.error('Sign in error:', error);

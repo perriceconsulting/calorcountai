@@ -52,9 +52,15 @@ export function OnboardingWizard() {
   const handleComplete = async () => {
     setLoading(true);
     setError(null);
-    const success = await completeOnboarding(preferences);
-    setLoading(false);
-    if (!success) {
+    try {
+      const success = await completeOnboarding(preferences);
+      setLoading(false);
+      if (!success) {
+        setError('Failed to complete setup. Please try again.');
+        addToast('Failed to complete setup. Please try again.', 'error');
+      }
+    } catch (err) {
+      setLoading(false);
       setError('Failed to complete setup. Please try again.');
       addToast('Failed to complete setup. Please try again.', 'error');
     }
@@ -75,6 +81,11 @@ export function OnboardingWizard() {
           )}
 
           <div className="bg-white rounded-lg shadow-lg p-8">
+            {error && (
+              <div className="mb-4 text-red-600 text-sm" role="alert">
+                {error}
+              </div>
+            )}
             <Suspense fallback={<div>Loading step...</div>}>
               <CurrentStep
                 onNext={handleNext}
@@ -93,3 +104,4 @@ export function OnboardingWizard() {
     </div>
   );
 }
+// removed stubbed setError function, now using useState for error handling

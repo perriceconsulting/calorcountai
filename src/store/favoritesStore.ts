@@ -1,27 +1,30 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchFavorites, addFavorite as addFavToDB, removeFavorite as removeFavFromDB } from '../services/favoritesService';
 
 interface FavoritesStore {
   favorites: string[];
-  addFavorite: (id: string) => void;
-  removeFavorite: (id: string) => void;
+  loadFavorites: () => Promise<void>;
+  addFavorite: (id: string) => Promise<void>;
+  removeFavorite: (id: string) => Promise<void>;
   isFavorite: (id: string) => boolean;
 }
 
-export const useFavoritesStore = create<FavoritesStore>()(
-  persist(
-    (set, get) => ({
-      favorites: [],
-      addFavorite: (id) =>
-        set((state) => ({ favorites: [...state.favorites, id] })),
-      removeFavorite: (id) =>
-        set((state) => ({
-          favorites: state.favorites.filter((fav) => fav !== id),
-        })),
-      isFavorite: (id) => get().favorites.includes(id),
-    }),
-    {
-      name: 'favorites-store', // unique name for storage
-    }
-  )
-);
+export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
+  favorites: [],
+  // Load favorites from Supabase
+  loadFavorites: async () => {
+    const favs = await fetchFavorites();
+    set({ favorites: favs });
+  },
+  // Add favorite in Supabase and update local state
+  addFavorite: async (id: string) => {
+    await addFavToDB(id);
+    set((state) => ({ favorites: [...state.favorites, id] }));
+  },
+  // Remove favorite in Supabase and update local state
+  removeFavorite: async (id: string) => {
+    await removeFavFromDB(id);
+    set((state) => ({ favorites: state.favorites.filter((fav) => fav !== id) }));
+  },
+  isFavorite: (id: string) => get().favorites.includes(id),
+}));

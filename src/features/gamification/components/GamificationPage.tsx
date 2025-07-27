@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Trophy, Star } from 'lucide-react';
 import { ProgressOverview } from './ProgressOverview';
 import { AchievementList } from './AchievementList';
 import { BadgeList } from './BadgeList';
 import { StreakDisplay } from './StreakDisplay';
+import { ChallengesList } from './ChallengesList';
+import { useAchievementStore } from '../store/achievementStore';
 
 export function GamificationPage() {
+  // clear notification dot when entering Achievements page
+  const clearLastUnlocked = useAchievementStore(s => s.clearLastUnlocked);
+  useEffect(() => {
+    clearLastUnlocked();
+  }, [clearLastUnlocked]);
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-8">
@@ -18,6 +25,7 @@ export function GamificationPage() {
 
       <div className="space-y-8">
         <ProgressOverview />
+        <ChallengesList />
         <StreakDisplay />
         
         <div>

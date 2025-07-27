@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { FoodAnalysis } from '../types/food';
 import { useToastStore } from './toastStore';
+import { useAchievementStore } from '../features/gamification/store/achievementStore';
+import { useChallengesStore } from '../features/gamification/store/challengesStore';
+import { POINT_VALUES } from '../features/gamification/constants';
 
 interface FoodStore {
   foodEntries: FoodAnalysis[];
@@ -25,6 +28,8 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
         throw new Error('Not authenticated');
       }
 
+      // capture previous entry count for first-meal achievement
+      const prevCount = get().foodEntries.length;
       const { error } = await supabase
         .from('food_entries')
         .insert([{
@@ -39,6 +44,13 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
       if (error) throw error;
       // Refresh local entries so UI updates immediately
       await get().fetchEntries();
+      // award achievement and points
+      const { unlockAchievement, addPoints } = useAchievementStore.getState();
+      if (prevCount === 0) {
+        unlockAchievement('first-meal');
+      }
+      addPoints(POINT_VALUES.MEAL_LOG);
+      // challenges updated in fetchEntries via updateProgress
     } catch (error) {
       useToastStore.getState().addToast(
         'Failed to save food entry',
@@ -51,6 +63,7 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
   fetchEntries: async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      // (Achievements are handled when adding entries)
       if (!user) return;
 
       const { data: entries, error } = await supabase
@@ -71,6 +84,47 @@ export const useFoodStore = create<FoodStore>((set, get) => ({
           timestamp: entry.timestamp
         }));
         set({ foodEntries });
+        // reset challenge progress before updating based on fresh data
+        useChallengesStore.getState().loadDefaults();
+        // compute meal logging streak
+        const today = new Date();
+        const datesWithMeals = new Set(
+          foodEntries.map(e => new Date(e.timestamp!).toDateString())
+        );
+        // compute meal streak with up to 1-day miss grace
+        let streak = 0;
+        let misses = 0;
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          if (datesWithMeals.has(d.toDateString())) {
+            streak++;
+            misses = 0;
+          } else {
+            misses++;
+            if (misses > 1) break;
+          }
+        }
+        // update streak in achievement store
+        const ach = useAchievementStore.getState();
+        ach.updateStreaks({ ...ach.progress.streaks, mealLogging: streak });
+        // update meal challenges based on current counts using ISO date strings
+        const todayISO = today.toISOString().split('T')[0];
+        const dailyCount = foodEntries.filter(e => e.timestamp!.split('T')[0] === todayISO).length;
+        useChallengesStore.getState().updateProgress('mealLogs', 'daily', dailyCount);
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekStartISO = weekStart.toISOString().split('T')[0];
+        const weeklyCount = foodEntries.filter(e => {
+          const dateISO = e.timestamp!.split('T')[0];
+          return dateISO >= weekStartISO && dateISO <= todayISO;
+        }).length;
+        useChallengesStore.getState().updateProgress('mealLogs', 'weekly', weeklyCount);
+        // unlock week-streak if reached 7 days
+        if (streak >= 7 && !ach.progress.achievements.includes('week-streak')) {
+          ach.unlockAchievement('week-streak');
+          ach.addPoints(POINT_VALUES.STREAK_BONUS);
+        }
       }
     } catch (error) {
       console.error('Error fetching entries:', error);

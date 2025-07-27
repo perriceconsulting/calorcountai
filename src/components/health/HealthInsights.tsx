@@ -1,9 +1,9 @@
-import React from 'react';
 import { Activity } from 'lucide-react';
 import { WaterTracker } from './WaterTracker';
 import { ExerciseTracker } from './ExerciseTracker';
 import { HealthMetrics } from './HealthMetrics';
 import { InfoTooltip } from '../accessibility/Tooltip';
+import { StreakDisplay } from './StreakDisplay';
 
 export function HealthInsights() {
   return (
@@ -24,6 +24,7 @@ export function HealthInsights() {
         <div className="border-t pt-6">
           <ExerciseTracker />
         </div>
+        <StreakDisplay />
       </div>
     </div>
   );

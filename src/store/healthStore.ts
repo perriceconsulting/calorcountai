@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../types/health';
 import { useToastStore } from './toastStore';
+import { useAchievementStore } from '../features/gamification/store/achievementStore';
+import { useChallengesStore } from '../features/gamification/store/challengesStore';
+import { POINT_VALUES } from '../features/gamification/constants';
 
 interface HealthStore {
   waterIntake: number;
@@ -14,7 +17,8 @@ interface HealthStore {
 }
 
 export const useHealthStore = create<HealthStore>((set, get) => ({
-  waterIntake: 0,
+  // waterIntake stored in ounces
+  waterIntake: 0, // waterIntake stored in ounces
   exercises: [],
   isLoading: false,
 
@@ -23,8 +27,12 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // add one glass (8 oz)
+      const GLASS_OZ = 8;
+      const DAILY_GOAL_OZ = 8 * GLASS_OZ; // 64 oz
       const today = new Date().toISOString().split('T')[0];
-      const newIntake = get().waterIntake + 1;
+      const current = get().waterIntake;
+      const newIntake = Math.min(current + GLASS_OZ, DAILY_GOAL_OZ);
 
       const { error } = await supabase
         .from('water_logs')
@@ -39,6 +47,8 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
 
       if (error) throw error;
       set({ waterIntake: newIntake });
+      // update water intake challenges
+      useChallengesStore.getState().increment('waterIntake', 1);
     } catch (error) {
       useToastStore.getState().addToast('Failed to update water intake', 'error');
       console.error('Error updating water intake:', error);
@@ -50,9 +60,12 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
-      const newIntake = Math.max(0, get().waterIntake - 1);
+      // remove one glass (8 oz)
+      const GLASS_OZ = 8;
+      const current = get().waterIntake;
+      const newIntake = Math.max(0, current - GLASS_OZ);
 
+      const today = new Date().toISOString().split('T')[0];
       const { error } = await supabase
         .from('water_logs')
         .upsert({
@@ -66,6 +79,8 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
 
       if (error) throw error;
       set({ waterIntake: newIntake });
+      // update water intake challenges (decrement)
+      useChallengesStore.getState().increment('waterIntake', -GLASS_OZ);
     } catch (error) {
       useToastStore.getState().addToast('Failed to update water intake', 'error');
       console.error('Error updating water intake:', error);
@@ -130,71 +145,86 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
         throw exerciseError;
       }
 
+      const todayIntake = waterData?.glasses || 0;
       set({
-        waterIntake: waterData?.glasses || 0,
+        waterIntake: todayIntake,
         exercises: exerciseData?.map(e => ({
           activity: e.activity,
           duration: e.duration,
           calories: e.calories
         })) || []
       });
+
+      // compute water-tracking streak (e.g., daily goal of >=8 glasses)
+      const goal = 8;
+      const todayDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 6);
+      const start = startDate.toISOString().split('T')[0];
+      // fetch last 7 days of water logs
+      const { data: history, error: histError } = await supabase
+        .from('water_logs')
+        .select('date,glasses')
+        .eq('user_id', user.id)
+        .gte('date', start)
+        .order('date', { ascending: false });
+      if (!histError && history) {
+        // update water intake challenges: daily and weekly totals
+        useChallengesStore.getState().updateProgress('waterIntake', 'daily', todayIntake);
+        const weeklyTotal = history.reduce((sum, w) => sum + w.glasses, 0);
+        useChallengesStore.getState().updateProgress('waterIntake', 'weekly', weeklyTotal);
+        // build set of dates meeting goal
+        const goodDays = new Set(history
+          .filter(w => w.glasses >= goal)
+          .map(w => w.date));
+        // include today if meets goal
+        if (todayIntake >= goal) goodDays.add(todayDate);
+        // count consecutive days
+        let waterStreak = 0;
+        let misses = 0;
+        for (let i = 0; i < 7; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const ds = d.toISOString().split('T')[0];
+          if (goodDays.has(ds)) {
+            waterStreak++;
+            misses = 0;
+          } else {
+            misses++;
+            if (misses > 1) break;
+          }
+        }
+        // update streak in achievement store
+        const ach = useAchievementStore.getState();
+        ach.updateStreaks({ ...ach.progress.streaks, waterTracking: waterStreak });
+        // unlock hydration-master at 5-day streak
+        if (waterStreak >= 5 && !ach.progress.achievements.includes('hydration-master')) {
+          ach.unlockAchievement('hydration-master');
+          ach.addPoints(POINT_VALUES.WATER_GOAL * 5);
+          useToastStore.getState().addToast('Hydration Master unlocked! 💧', 'success');
+        }
+      }
     } catch (error) {
       console.error('Error fetching health data:', error);
       useToastStore.getState().addToast('Failed to fetch health data', 'error');
     } finally {
       set({ isLoading: false });
     }
-  }
+  },
 }));
 
-// Set up real-time subscription
-supabase.auth.onAuthStateChange((event, session) => {
+// Fetch initial health data on auth change
+supabase.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_IN') {
-    // Fetch initial data
     useHealthStore.getState().fetchHealthData();
-
-    // Set up real-time subscription for water logs
-    const waterChannel = supabase.channel('water_logs')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'water_logs',
-          filter: `user_id=eq.${session?.user.id}`
-        },
-        () => {
-          useHealthStore.getState().fetchHealthData();
-        }
-      )
-      .subscribe();
-
-    // Set up real-time subscription for exercise logs
-    const exerciseChannel = supabase.channel('exercise_logs')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'exercise_logs',
-          filter: `user_id=eq.${session?.user.id}`
-        },
-        () => {
-          useHealthStore.getState().fetchHealthData();
-        }
-      )
-      .subscribe();
-
-    // Store channel references for cleanup
-    (window as any).__healthChannels = [waterChannel, exerciseChannel];
   } else if (event === 'SIGNED_OUT') {
-    // Clean up subscriptions
-    const channels = (window as any).__healthChannels;
-    if (channels) {
-      channels.forEach((channel: any) => channel.unsubscribe());
-      delete (window as any).__healthChannels;
-    }
-    // Clear data
     useHealthStore.setState({ waterIntake: 0, exercises: [] });
   }
 });
+// Load data immediately if already signed in
+(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    useHealthStore.getState().fetchHealthData();
+  }
+})();

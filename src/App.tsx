@@ -11,6 +11,7 @@ import { LeaderboardPage } from './components/social/LeaderboardPage';
 import { CommunityPage } from './features/community/components/CommunityPage';
 import { GamificationPage } from './features/gamification/components/GamificationPage';
 import { ToastContainer } from './components/feedback/Toast';
+import { DashboardPage } from './components/dashboard/DashboardPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/achievements" element={<GamificationPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
             </Route>
           </Route>
         </Routes>

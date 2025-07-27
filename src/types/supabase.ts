@@ -19,6 +19,14 @@ export interface Database {
           onboarding_completed: boolean
           preferences: Json
           last_active: string
+         first_name: string | null
+         last_name: string | null
+         date_of_birth: string | null
+         height: number | null
+         weight: number | null
+         gender: string | null
+         activity_level: string | null
+         fitness_goal: string | null
         }
         Insert: {
           id: string
@@ -29,6 +37,14 @@ export interface Database {
           onboarding_completed?: boolean
           preferences?: Json
           last_active?: string
+         first_name?: string | null
+         last_name?: string | null
+         date_of_birth?: string | null
+         height?: number | null
+         weight?: number | null
+         gender?: string | null
+         activity_level?: string | null
+         fitness_goal?: string | null
         }
         Update: {
           id?: string
@@ -39,6 +55,14 @@ export interface Database {
           onboarding_completed?: boolean
           preferences?: Json
           last_active?: string
+         first_name?: string | null
+         last_name?: string | null
+         date_of_birth?: string | null
+         height?: number | null
+         weight?: number | null
+         gender?: string | null
+         activity_level?: string | null
+         fitness_goal?: string | null
         }
       }
     }

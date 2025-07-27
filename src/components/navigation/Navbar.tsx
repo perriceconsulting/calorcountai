@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Camera, Calendar, Trophy, Users, Menu, X } from 'lucide-react';
+import { Camera, Calendar, Trophy, Users, Menu, X, BarChart2 } from 'lucide-react';
+import { useAchievementStore } from '../../features/gamification/store/achievementStore';
 import { UserMenu } from './UserMenu';
-import { useDeviceCapabilities } from '../../hooks/useDeviceCapabilities';
 
 export function Navbar() {
   const location = useLocation();
-  const { isMobile } = useDeviceCapabilities();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const lastUnlocked = useAchievementStore(s => s.lastUnlocked);
+  // remove clearLastUnlocked here; will clear on Achievements page mount
   
   return (
     <nav className="bg-white shadow-lg relative z-50">
@@ -21,29 +22,40 @@ export function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          {!isMobile && (
-            <div className="hidden md:flex items-center space-x-8">
-              <NavLink to="/" active={location.pathname === "/"}>
-                Track Food
-              </NavLink>
-              <NavLink to="/calendar" active={location.pathname === "/calendar"}>
-                <Calendar className="w-5 h-5 mr-1" />
-                Calendar
-              </NavLink>
-              <NavLink to="/community" active={location.pathname === "/community"}>
-                <Users className="w-5 h-5 mr-1" />
-                Community
-              </NavLink>
-              <NavLink to="/achievements" active={location.pathname === "/achievements"}>
+          <div className="hidden md:flex items-center space-x-8">
+            <NavLink to="/" active={location.pathname === "/"}>
+              Track Food
+            </NavLink>
+            <NavLink to="/calendar" active={location.pathname === "/calendar"}>
+              <Calendar className="w-5 h-5 mr-1" />
+              Calendar
+            </NavLink>
+            <NavLink to="/community" active={location.pathname === "/community"}>
+              <Users className="w-5 h-5 mr-1" />
+              Community
+            </NavLink>
+            {/* Achievements link with badge */}
+            <NavLink
+              to="/achievements"
+              active={location.pathname === "/achievements"}
+            >
+              <div className="relative">
                 <Trophy className="w-5 h-5 mr-1" />
-                Achievements
-              </NavLink>
-              <UserMenu />
-            </div>
-          )}
+                {lastUnlocked && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </div>
+              Achievements
+            </NavLink>
+            <NavLink to="/dashboard" active={location.pathname === "/dashboard"}>
+              <BarChart2 className="w-5 h-5 mr-1" />
+              Dashboard
+            </NavLink>
+            <UserMenu />
+          </div>
 
           {/* Mobile Menu Button */}
-          {isMobile && (
+          <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
@@ -55,13 +67,13 @@ export function Navbar() {
                 <Menu className="h-6 w-6" />
               )}
             </button>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Mobile Navigation */}
-      {isMobile && isMenuOpen && (
-        <div className="fixed inset-0 top-16 bg-white z-40">
+      {isMenuOpen && (
+        <div className="fixed inset-0 top-16 bg-white z-40 md:hidden">
           <div className="flex flex-col p-4 space-y-4">
             <MobileNavLink 
               to="/" 
@@ -92,8 +104,21 @@ export function Navbar() {
               active={location.pathname === "/achievements"}
               onClick={() => setIsMenuOpen(false)}
             >
-              <Trophy className="w-5 h-5 mr-2" />
+              <div className="relative mr-2">
+                <Trophy className="w-5 h-5" />
+                {lastUnlocked && (
+                  <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </div>
               Achievements
+            </MobileNavLink>
+            <MobileNavLink
+              to="/dashboard"
+              active={location.pathname === "/dashboard"}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <BarChart2 className="w-5 h-5 mr-2" />
+              Dashboard
             </MobileNavLink>
             <div className="pt-4 border-t">
               <UserMenu />
@@ -105,16 +130,18 @@ export function Navbar() {
   );
 }
 
-interface NavLinkProps {
+ interface NavLinkProps {
   to: string;
   active: boolean;
   children: React.ReactNode;
+  onClick?: () => void;
 }
 
-function NavLink({ to, active, children }: NavLinkProps) {
+function NavLink({ to, active, children, onClick }: NavLinkProps) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
         active
           ? "border-blue-600 text-gray-900"

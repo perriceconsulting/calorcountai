@@ -34,38 +34,54 @@ export function ImageUpload() {
     setIsAnalyzing(true);
 
     reader.onload = async () => {
-      try {
         const imageData = reader.result as string;
-        setUploadStatus('analyzing');
-
-        // Upload to storage first
-        const imageUrl = await uploadFoodImage(imageData);
-        if (!imageUrl) throw new Error('Failed to upload image');
-
-        const analysis = await analyzeFoodImage(imageData);
-        if (!analysis) throw new Error('Could not analyze the food image');
-
-        await addFoodEntry({
-          ...analysis,
-          imageUrl,
-          timestamp: new Date().toISOString(),
-          mealType: selectedMealType,
-        });
-        addToast('Food analyzed and added successfully', 'success');
-      } catch (err) {
-        setUploadStatus('error');
-        setError('Failed to analyze food image. Please try again.');
-        addToast('Failed to analyze food image', 'error');
-        console.error('Error analyzing image:', err);
-      } finally {
-        // schedule state reset after analysis/upload completes
-        const reset = () => {
-          setUploadStatus(null);
-          setError(undefined);
-          setIsAnalyzing(false);
-        };
-        setTimeout(reset, 3000);
-      }
+        // Step 1: Upload
+        let imageUrl: string;
+        try {
+          setUploadStatus('uploading');
+          const result = await uploadFoodImage(imageData);
+          if (!result) throw new Error('Failed to upload image');
+          imageUrl = result;
+        } catch (uploadError: any) {
+          setUploadStatus('error');
+          const msg = uploadError.message || 'Failed to upload image';
+          setError(msg);
+          addToast(msg, 'error');
+          console.error('Error uploading image:', uploadError);
+          // Reset state after displaying the error
+          setTimeout(() => {
+            setUploadStatus(null);
+            setError(undefined);
+            setIsAnalyzing(false);
+          }, 3000);
+          return;
+        }
+        // Step 2: Analyze
+        try {
+          setUploadStatus('analyzing');
+          const analysis = await analyzeFoodImage(imageData);
+          if (!analysis) throw new Error('Could not analyze the food image');
+          await addFoodEntry({
+            ...analysis,
+            imageUrl,
+            timestamp: new Date().toISOString(),
+            mealType: selectedMealType,
+          });
+          addToast('Food analyzed and added successfully', 'success');
+        } catch (analysisError: any) {
+          setUploadStatus('error');
+          const msg = analysisError.message || 'Failed to analyze food image';
+          setError(msg);
+          addToast(msg, 'error');
+          console.error('Error analyzing image:', analysisError);
+        } finally {
+          // Reset state after finishing
+          setTimeout(() => {
+            setUploadStatus(null);
+            setError(undefined);
+            setIsAnalyzing(false);
+          }, 3000);
+        }
     };
 
     reader.onerror = () => {
@@ -103,9 +119,8 @@ export function ImageUpload() {
   return (
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
-      
       <div className="relative" {...getRootProps()}>
-        <input {...getInputProps()} />
+        <input {...getInputProps()} capture="environment" />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
@@ -114,7 +129,6 @@ export function ImageUpload() {
               : "Drag & drop a food image, or click to select"}
           </p>
         </div>
-        
         <UploadStatus status={uploadStatus} error={error} />
         {!selectedMealType && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">

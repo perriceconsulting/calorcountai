@@ -27,15 +27,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
-        password,
-        options: {
-          expiresIn: rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60
-        }
+        password
       });
 
       if (error) throw error;
       if (!data?.user) throw new Error('No user returned');
       
+      // If not 'remember me', keep session only in sessionStorage
+      if (data.session && !rememberMe) {
+        ['supabase.auth.token', 'sb-access-token', 'sb-refresh-token', 'supabase.auth.refreshToken', 'supabase.auth.accessToken'].forEach((key) => {
+          const val = window.localStorage.getItem(key);
+          if (val) {
+            window.sessionStorage.setItem(key, val);
+            window.localStorage.removeItem(key);
+          }
+        });
+      }
       set({ user: data.user, session: data.session });
       return {};
     } catch (error) {
@@ -48,7 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signUp: async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password
       });

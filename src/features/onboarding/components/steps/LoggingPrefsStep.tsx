@@ -1,4 +1,3 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import type { StepProps } from '../../types';
 
@@ -17,7 +16,7 @@ export function LoggingPrefsStep({
   isFirst,
   isLast
 }: StepProps) {
-  const { register, handleSubmit } = useForm<LoggingPrefsForm>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoggingPrefsForm>({
     defaultValues: {
       trackingStyle: preferences?.trackingStyle ?? 'photo',
       mealFrequency: preferences?.mealFrequency ?? 3,
@@ -34,28 +33,31 @@ export function LoggingPrefsStep({
     <form onSubmit={handleSubmit(submit)} className="space-y-6">
       <div>
         <label className="block text-sm font-medium mb-1">How do you prefer to log?</label>
-        <select {...register('trackingStyle')} className="w-full p-2 border rounded-lg">
+        <select {...register('trackingStyle', { required: true })} className="w-full p-2 border rounded-lg">
           <option value="photo">Photo</option>
           <option value="manual">Manual</option>
         </select>
+        {errors.trackingStyle && <p className="text-red-500 text-sm">This field is required</p>}
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">Meals per day</label>
         <input
           type="number"
-          {...register('mealFrequency', { valueAsNumber: true })}
+          {...register('mealFrequency', { valueAsNumber: true, required: true, min: 1, max: 8 })}
           className="w-full p-2 border rounded-lg"
           min={1}
           max={8}
         />
+        {errors.mealFrequency && <p className="text-red-500 text-sm">Enter a value between 1 and 8</p>}
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">Cooking skill level</label>
-        <select {...register('cookingSkill')} className="w-full p-2 border rounded-lg">
+        <select {...register('cookingSkill', { required: true })} className="w-full p-2 border rounded-lg">
           <option value="beginner">Beginner</option>
           <option value="homecook">Home Cook</option>
           <option value="pro">Professional</option>
         </select>
+        {errors.cookingSkill && <p className="text-red-500 text-sm">This field is required</p>}
       </div>
       <div className="flex justify-between">
         <button type="button" onClick={onBack} disabled={isFirst} className="px-4 py-2 bg-gray-200 rounded">

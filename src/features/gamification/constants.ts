@@ -23,6 +23,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     points: 75
   },
   {
+    id: 'consistency-champ',
+    title: 'Consistency Champ',
+    description: 'Complete all daily challenges before reset',
+    icon: 'trophy',
+    points: 150
+  },
+  {
     id: 'barcode-pro',
     title: 'Barcode Pro',
     description: 'Scan 10 different products',
