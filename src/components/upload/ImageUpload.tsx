@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { compressImage } from '../../utils/imageCompression';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -17,6 +17,9 @@ export function ImageUpload() {
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
+  // preview state for mobile confirm
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const pendingFileRef = useRef<File | null>(null);
   // notify user of ongoing upload/analyze steps
   useEffect(() => {
     if (uploadStatus === 'uploading') addToast('Uploading image...', 'info');
@@ -133,33 +136,61 @@ export function ImageUpload() {
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
       {/* Mobile: camera capture button */}
-      <div className="relative block md:hidden space-y-2">
-        <label
-          htmlFor="mobile-file-input"
-          className="w-full bg-blue-600 text-white py-2 rounded-lg text-center cursor-pointer disabled:opacity-50"
-        >
-          {uploadStatus === 'uploading'
-            ? 'Uploading image...'
-            : uploadStatus === 'analyzing'
-            ? 'Analyzing your food...'
-            : 'Take Photo'}
-        </label>
-        <input
-          id="mobile-file-input"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={!selectedMealType || !!uploadStatus}
-          className="hidden"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handleUpload(file);
-            // reset input
-            e.target.value = '';
-          }}
-        />
-        <UploadStatus status={uploadStatus} error={error} />
-      </div>
+      <div className="block md:hidden space-y-2">
+        {!previewSrc ? (
+          // initial camera button
+          <>
+            <label
+              htmlFor="mobile-file-input"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg text-center cursor-pointer disabled:opacity-50"
+            >
+              Take Photo
+            </label>
+            <input
+              id="mobile-file-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={!selectedMealType || !!uploadStatus}
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  pendingFileRef.current = file;
+                  setPreviewSrc(URL.createObjectURL(file));
+                }
+                e.target.value = '';
+              }}
+            />
+          </>
+        ) : (
+          // preview + confirm/retake
+          <div className="space-y-2">
+            <img src={previewSrc} alt="Preview" className="w-full rounded-lg" />
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  if (pendingFileRef.current) handleUpload(pendingFileRef.current);
+                }}
+                disabled={!selectedMealType || !!uploadStatus}
+                className="flex-1 bg-green-600 text-white py-2 rounded-lg disabled:opacity-50"
+              >
+                {uploadStatus ? 'Processing...' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => {
+                  URL.revokeObjectURL(previewSrc);
+                  setPreviewSrc(null);
+                  pendingFileRef.current = null;
+                }}
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg"
+              >
+                Retake
+              </button>
+            </div>
+            <UploadStatus status={uploadStatus} error={error} />
+          </div>
+        )}
 
       {/* Desktop: drag & drop */}
       <div className="hidden md:block relative" {...getRootProps()}>
