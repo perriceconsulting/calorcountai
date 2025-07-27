@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useDeviceCapabilities } from '../../hooks/useDeviceCapabilities';
+import { compressImage } from '../../utils/imageCompression';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
@@ -16,6 +18,7 @@ export function ImageUpload() {
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
 
+  const { isMobile } = useDeviceCapabilities();
   const handleUpload = (file: File) => {
     // Ensure a meal type is selected before uploading
     if (!selectedMealType) {
@@ -33,7 +36,14 @@ export function ImageUpload() {
     setIsAnalyzing(true);
 
     reader.onload = async () => {
-        const imageData = reader.result as string;
+        // Read raw data URL
+        let imageData = reader.result as string;
+        // Compress large images for mobile
+        try {
+          imageData = await compressImage(imageData, 300 * 1024); // target ~300KB
+        } catch (e) {
+          console.warn('Compression failed, using original image', e);
+        }
         // Step 1: Upload
         let imageUrl: string;
         try {
@@ -107,7 +117,8 @@ export function ImageUpload() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     disabled: !selectedMealType,
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
+    // accept all image mime types (including HEIC, WEBP on mobile)
+    accept: { 'image/*': [] },
     maxFiles: 1,
     multiple: false,
   });
@@ -117,7 +128,7 @@ export function ImageUpload() {
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
       <div className="relative" {...getRootProps()}>
-        <input {...getInputProps()} />
+        <input {...getInputProps({ capture: isMobile ? 'environment' : undefined })} />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
