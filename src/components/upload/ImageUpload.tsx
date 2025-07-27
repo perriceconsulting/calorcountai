@@ -135,60 +135,21 @@ export function ImageUpload() {
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
-      {/* Mobile: camera capture button */}
-      <div className="block md:hidden space-y-2">
-        {!previewSrc ? (
-          // initial camera button
-          <>
-            <label
-              htmlFor="mobile-file-input"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg text-center cursor-pointer disabled:opacity-50"
-            >
-              Take Photo
-            </label>
-            <input
-              id="mobile-file-input"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              disabled={!selectedMealType || !!uploadStatus}
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  pendingFileRef.current = file;
-                  setPreviewSrc(URL.createObjectURL(file));
-                }
-                e.target.value = '';
-              }}
-            />
-          </>
-        ) : (
-          // preview + confirm/retake
-          <div className="space-y-2">
-            <img src={previewSrc} alt="Preview" className="w-full rounded-lg" />
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  if (pendingFileRef.current) handleUpload(pendingFileRef.current);
-                }}
-                disabled={!selectedMealType || !!uploadStatus}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg disabled:opacity-50"
-              >
-                {uploadStatus ? 'Processing...' : 'Confirm'}
-              </button>
-              <button
-                onClick={() => {
-                  URL.revokeObjectURL(previewSrc);
-                  setPreviewSrc(null);
-                  pendingFileRef.current = null;
-                }}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg"
-              >
-                Retake
-              </button>
-            </div>
-            <UploadStatus status={uploadStatus} error={error} />
+      {/* File upload: import from device storage */}
+      <div className="relative" {...getRootProps()}>
+        <input {...getInputProps()} accept="image/*" />
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+          <p className="mt-2 text-sm text-gray-600">
+            {isDragActive
+              ? 'Drop the image here'
+              : 'Select or drag a photo from your device'}
+          </p>
+        </div>
+        <UploadStatus status={uploadStatus} error={error} />
+        {!selectedMealType && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+            <p className="text-gray-500">Select a meal type to enable upload</p>
           </div>
         )}
       </div>
