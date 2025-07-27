@@ -191,6 +191,7 @@ export function ImageUpload() {
             <UploadStatus status={uploadStatus} error={error} />
           </div>
         )}
+      </div>
 
       {/* Desktop: drag & drop */}
       <div className="hidden md:block relative" {...getRootProps()}>
