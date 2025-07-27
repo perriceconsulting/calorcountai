@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { compressImage } from '../../utils/imageCompression';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
@@ -39,7 +40,13 @@ export function ImageUpload() {
     setIsAnalyzing(true);
 
     reader.onload = async () => {
-        const imageData = reader.result as string;
+        let imageData = reader.result as string;
+        // compress large images for faster upload/analysis
+        try {
+          imageData = await compressImage(imageData, 500 * 1024); // target ~500KB
+        } catch (e) {
+          console.warn('Image compression failed, using original', e);
+        }
         // Step 1: Upload
         let imageUrl: string;
         try {
