@@ -119,14 +119,41 @@ export function ImageUpload() {
   return (
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
-      <div className="relative" {...getRootProps()}>
-        <input {...getInputProps()} capture="environment" />
+
+      {/* Mobile: camera capture button */}
+      <div className="block md:hidden space-y-2">
+        <label
+          htmlFor="mobile-file-input"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg text-center cursor-pointer disabled:opacity-50"
+        >
+          {uploadStatus ? 'Processing...' : 'Take Photo'}
+        </label>
+        <input
+          id="mobile-file-input"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={!selectedMealType || !!uploadStatus}
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleUpload(file);
+            // reset input
+            e.target.value = '';
+          }}
+        />
+        <UploadStatus status={uploadStatus} error={error} />
+      </div>
+
+      {/* Desktop: drag & drop */}
+      <div className="hidden md:block relative" {...getRootProps()}>
+        <input {...getInputProps()} />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
             {isDragActive
-              ? "Drop the image here"
-              : "Drag & drop a food image, or click to select"}
+              ? 'Drop the image here'
+              : 'Drag & drop a food image, or click to select'}
           </p>
         </div>
         <UploadStatus status={uploadStatus} error={error} />
