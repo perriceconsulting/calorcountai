@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Trophy, Star } from 'lucide-react';
 import { ProgressOverview } from './ProgressOverview';
 import { AchievementList } from './AchievementList';

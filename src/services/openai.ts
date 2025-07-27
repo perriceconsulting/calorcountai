@@ -18,7 +18,7 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
     }
 
     // Prepare message payload for OpenAI
-    let imageMessage: Record<string, any>;
+    let imageMessage: { type: 'image_url', image_url: { url: string } } | { type: 'image_base64', image_base64: string };
     if (isHttpUrl) {
       // Use external URL for image
       imageMessage = {
@@ -55,7 +55,7 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
           role: 'user',
           content: [
             { type: 'text', text: OPENAI_CONFIG.promptTemplate },
-            imageMessage
+            imageMessage as any
           ]
         }
       ],

@@ -1,4 +1,3 @@
-import React, { useEffect } from 'react';
 import { useChallengesStore } from '../store/challengesStore';
 import { useAchievementStore } from '../store/achievementStore';
 import { useToastStore } from '../../../store/toastStore';
@@ -14,7 +13,18 @@ export function ChallengesList() {
 
   if (!challenges.length) return null;
 
-  const handleClaim = (ch) => {
+  type Challenge = {
+    id: string;
+    title: string;
+    description: string;
+    metric: string;
+    goal: number;
+    progress: number;
+    completed: boolean;
+    claimed: boolean;
+  };
+
+  const handleClaim = (ch: Challenge) => {
     // award points based on metric
     const points = ch.metric === 'mealLogs'
       ? ch.goal * POINT_VALUES.MEAL_LOG
