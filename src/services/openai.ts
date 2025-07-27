@@ -10,15 +10,31 @@ const openai = new OpenAI({
 });
 
 export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | null> {
-  try {
-    if (!dataURL.startsWith('data:image/')) {
-      throw new Error('Invalid image format');
+    try {
+    // Allow DataURL or HTTP URL from Supabase
+    const isHttpUrl = dataURL.startsWith('http');
+    if (!isHttpUrl && !dataURL.startsWith('data:image/')) {
+      throw new Error('Invalid image format: must be Data URL or HTTP URL');
     }
 
-    // Convert data URL to base64
-    const base64Image = convertDataURLToBase64(dataURL);
-    if (!base64Image) {
-      throw new Error('Failed to convert image to base64');
+    // Prepare message payload for OpenAI
+    let imageMessage: Record<string, any>;
+    if (isHttpUrl) {
+      // Use external URL for image
+      imageMessage = {
+        type: 'image_url',
+        image_url: { url: dataURL }
+      };
+    } else {
+      // Send inline base64 image directly
+      const base64Image = convertDataURLToBase64(dataURL);
+      if (!base64Image) {
+        throw new Error('Failed to convert image to base64');
+      }
+      imageMessage = {
+        type: 'image_base64',
+        image_base64: base64Image
+      };
     }
 
     // Validate API key
@@ -30,29 +46,21 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
     console.log('OpenAI request:', {
       model: OPENAI_CONFIG.model,
       prompt: OPENAI_CONFIG.promptTemplate,
-      imageSnippet: base64Image.slice(0, 50) + '...' // truncated
+      imageType: isHttpUrl ? 'url' : 'base64'
     });
     const response = await openai.chat.completions.create({
       model: OPENAI_CONFIG.model,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { 
-              type: "text", 
-              text: OPENAI_CONFIG.promptTemplate 
-            },
-            { 
-              type: "image_url", 
-              image_url: { 
-                url: `data:image/jpeg;base64,${base64Image}`
-              } 
-            }
+            { type: 'text', text: OPENAI_CONFIG.promptTemplate },
+            imageMessage
           ]
         }
       ],
       max_tokens: OPENAI_CONFIG.maxTokens,
-      temperature: 0  // deterministic output for consistent macro estimates
+      temperature: 0 // deterministic output
     });
 
     // Debug: log raw response from OpenAI

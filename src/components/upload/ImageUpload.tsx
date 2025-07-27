@@ -63,10 +63,18 @@ export function ImageUpload() {
           }, 3000);
           return;
         }
-        // Step 2: Analyze
+        // Step 2: Analyze image (try DataURL first, then fallback to public URL)
         try {
           setUploadStatus('analyzing');
-          const analysis = await analyzeFoodImage(imageData);
+          console.debug('Starting analysis, attempting DataURL first, size:', imageData.length);
+          let analysis: any = null;
+          // First attempt with DataURL
+          try {
+            analysis = await analyzeFoodImage(imageData);
+          } catch (dataUrlError) {
+            console.warn('DataURL analysis failed, retrying with public URL', dataUrlError);
+            analysis = await analyzeFoodImage(imageUrl);
+          }
           if (!analysis) throw new Error('Could not analyze the food image');
           await addFoodEntry({
             ...analysis,
@@ -115,8 +123,7 @@ export function ImageUpload() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     disabled: !selectedMealType,
-    // accept all image mime types (including HEIC, WEBP on mobile)
-    accept: { 'image/*': [] },
+    // No accept filter here to allow gallery selection on mobile; validation occurs in handleUpload
     maxFiles: 1,
     multiple: false,
   });
