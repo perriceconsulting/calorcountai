@@ -117,7 +117,7 @@ export function ImageUpload() {
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
       <div className="relative" {...getRootProps()}>
-        <input {...getInputProps()} capture="environment" />
+        <input {...getInputProps()} />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
