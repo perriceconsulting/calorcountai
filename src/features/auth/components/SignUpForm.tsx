@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { signUp } from '../services/authService';
-import { useToastStore } from '../../../components/feedback/Toast';
+import { useToastStore } from '../../../store/toastStore';
 
 export function SignUpForm() {
   const [email, setEmail] = useState('');
