@@ -3,7 +3,7 @@
   publish = "dist"
   base = "/"
 
-[build.environment]
+[context.production.environment]
   NODE_VERSION = "20"
 
 [[redirects]]
