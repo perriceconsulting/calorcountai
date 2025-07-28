@@ -11,8 +11,10 @@ import { UploadStatus } from './UploadStatus';
 import type { MealType } from '../../types/meals';
 
 export function ImageUpload() {
-  // Detect mobile devices for camera capture
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  // Detect mobile devices (Android & iOS browsers)
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
 
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'uploading' | 'analyzing' | 'error' | null>(null);
@@ -132,15 +134,6 @@ export function ImageUpload() {
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
-      {/* Hidden camera-only input for mobile */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture={isMobile ? 'environment' : undefined}
-        onChange={e => e.target.files && e.target.files[0] && handleUpload(e.target.files[0])}
-        hidden
-      />
       <div className="relative" {...getRootProps()}>
         <input
           {...getInputProps()}
@@ -156,16 +149,6 @@ export function ImageUpload() {
           </p>
         </div>
         <UploadStatus status={uploadStatus} error={error} />
-        {/* Camera button on mobile */}
-        {isMobile && (
-          <button
-            type="button"
-            onClick={handleCameraCapture}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-          >
-            Use Camera
-          </button>
-        )}
         {!selectedMealType && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
             <p className="text-gray-500">Select a meal type to enable upload</p>
@@ -173,6 +156,26 @@ export function ImageUpload() {
         )}
       </div>
 
+      {/* Mobile camera option */}
+      {isMobile && (
+        <>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={e => e.target.files && e.target.files[0] && handleUpload(e.target.files[0])}
+            hidden
+          />
+          <button
+            type="button"
+            onClick={handleCameraCapture}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
+          >
+            Use Camera
+          </button>
+        </>
+      )}
     </div>
   );
 }
