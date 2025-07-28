@@ -4,8 +4,11 @@ import { cleanJsonResponse, safeJsonParse } from '../utils/jsonParser';
 import { convertDataURLToBase64 } from '../utils/canvasUtils';
 import type { FoodAnalysis } from '../types/food';
 
+// Normalize API key from environment, removing whitespace or line-breaks
+const rawApiKey = import.meta.env.VITE_OPENAI_API_KEY ?? '';
+const apiKey = rawApiKey.replace(/\s+/g, '');
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  apiKey,
   dangerouslyAllowBrowser: true,
 });
 
