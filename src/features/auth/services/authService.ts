@@ -11,7 +11,8 @@ export async function signUp(email: string, password: string, username: string) 
       options: {
         data: {
           username: username.trim()
-        }
+        },
+        emailRedirectTo: 'https://calorcountai.netlify.app/login'
       }
     });
 
@@ -58,6 +59,10 @@ export async function signIn(email: string, password: string, rememberMe: boolea
     });
 
     if (error) {
+      // Handle unconfirmed email
+      if (error.message.includes('not confirmed') || error.message.includes('not verified')) {
+        throw new Error('Please verify your email address before signing in');
+      }
       if (error.message.includes('Invalid login credentials')) {
         throw new Error('Invalid email or password');
       }
@@ -109,7 +114,13 @@ export async function signOut() {
 // Add function to resend verification email
 export async function resendVerificationEmail(email: string) {
   try {
-    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() });
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: 'https://calorcountai.netlify.app/login'
+      }
+    });
     if (error) throw error;
     return { error: null };
   } catch (error) {
