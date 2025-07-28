@@ -1,12 +1,11 @@
-import React from 'react';
 import { Trophy, Users, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useCommunityStore } from '../store/communityStore';
+import { useChallengeStore } from '../../../store/challengeStore';
 import { motion } from 'framer-motion';
 
 export function CommunityBanner() {
-  const { challenges } = useCommunityStore();
-  const activeChallenge = challenges[0]; // Most recent challenge
+  const { myChallenges } = useChallengeStore();
+  const activeChallenge = myChallenges[0]; // Most recent challenge
 
   if (!activeChallenge) return null;
 
@@ -26,7 +25,7 @@ export function CommunityBanner() {
           <div className="flex items-center gap-4 text-blue-100">
             <span className="flex items-center gap-1">
               <Users className="w-4 h-4" />
-              {activeChallenge.participants}+ participants
+              {((activeChallenge as any).participants?.length ?? 0) + '+ participants'}
             </span>
           </div>
         </div>

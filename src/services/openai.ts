@@ -1,20 +1,24 @@
 // Client-side wrapper calling Netlify Function for image analysis
 import type { FoodAnalysis } from '../types/food';
 
+// Base URL for Netlify functions (override via VITE_API_BASE_URL if needed)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const ANALYZE_FOOD_URL = `${API_BASE}/.netlify/functions/analyze-food`;
+
 export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | null> {
   try {
-    const res = await fetch('/.netlify/functions/analyze-food', {
+    const res = await fetch(ANALYZE_FOOD_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dataURL }),
     });
     if (!res.ok) {
-      throw new Error(`Analysis API error: ${res.status} ${res.statusText}`);
+      const errMsg = await res.text();
+      throw new Error(`Analysis API error: ${res.status} ${res.statusText} - ${errMsg}`);
     }
-    const data: FoodAnalysis = await res.json();
-    return data;
+    return await res.json() as FoodAnalysis;
   } catch (err) {
     console.error('analyzeFoodImage error:', err);
-    return null;
+    throw err instanceof Error ? err : new Error('Unknown error');
   }
 }

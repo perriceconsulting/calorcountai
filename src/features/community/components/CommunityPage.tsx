@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import { ChallengeList } from './ChallengeList';
+import { ChallengeList } from '../../../components/challenges/ChallengeList';
 import { CommunityStats } from './CommunityStats';
 import { CreateChallengeButton } from './CreateChallengeButton';
 import { PageHeader } from '../../../components/shared/PageHeader';

@@ -1,14 +1,17 @@
-import React from 'react';
 import { Users, Trophy, Target } from 'lucide-react';
-import { useCommunityStore } from '../store/communityStore';
+import { useChallengeStore } from '../../../store/challengeStore';
 
 export function CommunityStats() {
-  const { challenges, activeChallenges } = useCommunityStore();
-  
-  const totalParticipants = challenges.reduce((sum, c) => sum + c.participants, 0);
-  const completionRate = Math.round(
-    (challenges.reduce((sum, c) => sum + c.progress, 0) / (challenges.length || 1))
-  );
+  const { publicChallenges, myChallenges } = useChallengeStore();
+  // Active users: count of unique owners across all public and my challenges
+  const usersSet = new Set<string>([
+    ...publicChallenges.map((c) => c.owner_id),
+    ...myChallenges.map((c) => c.owner_id)
+  ]);
+  const totalParticipants = usersSet.size;
+  // Active challenges: those the current user has joined or owns (myChallenges)
+  const activeCount = myChallenges.length;
+  const completionRate = 0; // feature TBD
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -21,7 +24,7 @@ export function CommunityStats() {
       <StatCard
         icon={Trophy}
         label="Active Challenges"
-        value={activeChallenges.length.toString()}
+        value={activeCount.toString()}
         description="Challenges you're participating in"
       />
       <StatCard
