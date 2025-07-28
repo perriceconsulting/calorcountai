@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { compressImage } from '../../utils/imageCompression';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -19,6 +19,11 @@ export function ImageUpload() {
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
+  // Ref and handler for explicit camera capture on mobile
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const handleCameraCapture = () => {
+    cameraInputRef.current?.click();
+  };
 
   const handleUpload = (file: File) => {
     // Ensure a meal type is selected before uploading
@@ -127,6 +132,15 @@ export function ImageUpload() {
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
 
+      {/* Hidden camera-only input for mobile */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture={isMobile ? 'environment' : undefined}
+        onChange={e => e.target.files && e.target.files[0] && handleUpload(e.target.files[0])}
+        hidden
+      />
       <div className="relative" {...getRootProps()}>
         <input
           {...getInputProps()}
@@ -142,6 +156,16 @@ export function ImageUpload() {
           </p>
         </div>
         <UploadStatus status={uploadStatus} error={error} />
+        {/* Camera button on mobile */}
+        {isMobile && (
+          <button
+            type="button"
+            onClick={handleCameraCapture}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
+          >
+            Use Camera
+          </button>
+        )}
         {!selectedMealType && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
             <p className="text-gray-500">Select a meal type to enable upload</p>
