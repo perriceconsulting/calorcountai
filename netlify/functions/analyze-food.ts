@@ -9,7 +9,8 @@ import { convertDataURLToBase64 } from '../../src/utils/canvasUtils';
 import type { FoodAnalysis } from '../../src/types/food';
 
 // Use server-side env var (set in Netlify UI)
-const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+const rawApiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || '';
+const apiKey = rawApiKey.replace(/\s+/g, '');
 if (!apiKey) {
   throw new Error('Missing OpenAI API key in environment');
 }
