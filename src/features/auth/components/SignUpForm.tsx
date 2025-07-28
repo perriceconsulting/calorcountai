@@ -87,7 +87,8 @@ export function SignUpForm() {
               type="text"
               required
               minLength={3}
-              pattern="^[a-zA-Z0-9_-]+$"
+              // Move hyphen to start of class to avoid regex syntax error
+              pattern="^[-a-zA-Z0-9_]+$"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
