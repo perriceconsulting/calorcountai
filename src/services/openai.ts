@@ -10,31 +10,16 @@ const openai = new OpenAI({
 });
 
 export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | null> {
-    try {
-    // Allow DataURL or HTTP URL from Supabase
-    const isHttpUrl = dataURL.startsWith('http');
-    if (!isHttpUrl && !dataURL.startsWith('data:image/')) {
-      throw new Error('Invalid image format: must be Data URL or HTTP URL');
+  try {
+    // Ensure DataURL format
+    if (!dataURL.startsWith('data:image/')) {
+      throw new Error('analyzeFoodImage expects a DataURL string');
     }
 
-    // Prepare message payload for OpenAI
-    let imageMessage: { type: 'image_url', image_url: { url: string } } | { type: 'image_base64', image_base64: string };
-    if (isHttpUrl) {
-      // Use external URL for image
-      imageMessage = {
-        type: 'image_url',
-        image_url: { url: dataURL }
-      };
-    } else {
-      // Send inline base64 image directly
-      const base64Image = convertDataURLToBase64(dataURL);
-      if (!base64Image) {
-        throw new Error('Failed to convert image to base64');
-      }
-      imageMessage = {
-        type: 'image_base64',
-        image_base64: base64Image
-      };
+    // Convert DataURL to base64
+    const base64Image = convertDataURLToBase64(dataURL);
+    if (!base64Image) {
+      throw new Error('Failed to convert DataURL to base64');
     }
 
     // Validate API key
@@ -42,12 +27,7 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
       throw new Error('OpenAI API key is missing');
     }
 
-    // Debug: log prompt details
-    console.log('OpenAI request:', {
-      model: OPENAI_CONFIG.model,
-      prompt: OPENAI_CONFIG.promptTemplate,
-      imageType: isHttpUrl ? 'url' : 'base64'
-    });
+    console.debug('Sending image analysis to OpenAI, snippet:', base64Image.slice(0, 50) + '...');
     const response = await openai.chat.completions.create({
       model: OPENAI_CONFIG.model,
       messages: [
@@ -55,48 +35,38 @@ export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | 
           role: 'user',
           content: [
             { type: 'text', text: OPENAI_CONFIG.promptTemplate },
-            imageMessage as any
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
           ]
         }
       ],
       max_tokens: OPENAI_CONFIG.maxTokens,
-      temperature: 0 // deterministic output
+      temperature: 0,
     });
 
-    // Debug: log raw response from OpenAI
-    console.log('OpenAI raw response:', response);
-    // Debug: inspect the first choice object and message field
-    console.log('OpenAI choice[0]:', response.choices[0]);
-    console.log('OpenAI choice[0].message:', response.choices[0]?.message);
-    const content = response.choices[0]?.message?.content;
+    const content = response.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error('No content in OpenAI response');
     }
-    
-    const cleanedContent = cleanJsonResponse(content);
-    const parsed = safeJsonParse<FoodAnalysis>(cleanedContent);
-    
+
+    const cleaned = cleanJsonResponse(content);
+    const parsed = safeJsonParse<FoodAnalysis>(cleaned);
     if (!parsed) {
       throw new Error('Failed to parse OpenAI response');
     }
 
-    // Validate the parsed response
-    if (!parsed.description || !parsed.macros || 
-        typeof parsed.macros.calories !== 'number' ||
-        typeof parsed.macros.protein !== 'number' ||
-        typeof parsed.macros.fat !== 'number' ||
-        typeof parsed.macros.carbs !== 'number') {
+    // Validate response structure
+    const { description, macros } = parsed;
+    if (!description || !macros ||
+        typeof macros.calories !== 'number' ||
+        typeof macros.protein !== 'number' ||
+        typeof macros.fat !== 'number' ||
+        typeof macros.carbs !== 'number') {
       throw new Error('Invalid response structure from OpenAI');
     }
 
     return parsed;
   } catch (error) {
-    // Log detailed error for debugging
-    console.error('Error analyzing food image:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('analyzeFoodImage error:', error);
     return null;
   }
 }

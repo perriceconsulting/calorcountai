@@ -63,18 +63,11 @@ export function ImageUpload() {
           }, 3000);
           return;
         }
-        // Step 2: Analyze image (try DataURL first, then fallback to public URL)
+        // Step 2: Analyze using the compressed DataURL
         try {
           setUploadStatus('analyzing');
-          console.debug('Starting analysis, attempting DataURL first, size:', imageData.length);
-          let analysis: any = null;
-          // First attempt with DataURL
-          try {
-            analysis = await analyzeFoodImage(imageData);
-          } catch (dataUrlError) {
-            console.warn('DataURL analysis failed, retrying with public URL', dataUrlError);
-            analysis = await analyzeFoodImage(imageUrl);
-          }
+          console.debug('Analyzing inline DataURL, size:', imageData.length);
+          const analysis = await analyzeFoodImage(imageData);
           if (!analysis) throw new Error('Could not analyze the food image');
           await addFoodEntry({
             ...analysis,
