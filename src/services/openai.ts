@@ -4,9 +4,9 @@ import { cleanJsonResponse, safeJsonParse } from '../utils/jsonParser';
 import { convertDataURLToBase64 } from '../utils/canvasUtils';
 import type { FoodAnalysis } from '../types/food';
 
-// Normalize API key from environment, removing whitespace or line-breaks
+// Normalize API key: use only the first non-empty line from the Netlify secret
 const rawApiKey = import.meta.env.VITE_OPENAI_API_KEY ?? '';
-const apiKey = rawApiKey.replace(/\s+/g, '');
+const apiKey = rawApiKey.split(/\r?\n/)[0].trim();
 const openai = new OpenAI({
   apiKey,
   dangerouslyAllowBrowser: true,
