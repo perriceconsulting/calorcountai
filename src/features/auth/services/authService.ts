@@ -105,3 +105,15 @@ export async function signOut() {
     return { error: 'Failed to sign out' };
   }
 }
+
+// Add function to resend verification email
+export async function resendVerificationEmail(email: string) {
+  try {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() });
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Resend verification email error:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to resend verification email.' };
+  }
+}

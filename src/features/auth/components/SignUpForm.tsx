@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import { signUp } from '../services/authService';
+import { signUp, resendVerificationEmail } from '../services/authService';
 import { useToastStore } from '../../../store/toastStore';
 
 export function SignUpForm() {
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +45,11 @@ export function SignUpForm() {
       
       if (error) {
         addToast(error, 'error');
+        if (error === 'This email is already registered') {
+          setShowResend(true);
+        } else {
+          setShowResend(false);
+        }
       } else {
         addToast('Account created successfully! Please sign in.', 'success');
         navigate('/login');
@@ -50,6 +57,17 @@ export function SignUpForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    const { error } = await resendVerificationEmail(email);
+    if (error) {
+      addToast(error, 'error');
+    } else {
+      addToast('Verification email sent', 'success');
+    }
+    setResendLoading(false);
   };
 
   return (
@@ -135,6 +153,20 @@ export function SignUpForm() {
           >
             {loading ? 'Creating account...' : 'Sign up'}
           </button>
+
+          {showResend && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600 mb-2">Email is already registered.</p>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading}
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+              >
+                {resendLoading ? 'Resending...' : 'Resend verification email'}
+              </button>
+            </div>
+          )}
 
           <div className="text-sm text-center">
             <span className="text-gray-600">Already have an account? </span>
