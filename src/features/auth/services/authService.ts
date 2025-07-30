@@ -1,6 +1,5 @@
 import { supabase } from '../../../lib/supabase';
 import type { AuthError } from '@supabase/supabase-js';
-import { AuthRetryableFetchError } from '@supabase/supabase-js';
 
 export async function signUp(email: string, password: string, username: string) {
   try {
@@ -11,8 +10,7 @@ export async function signUp(email: string, password: string, username: string) 
       options: {
         data: {
           username: username.trim()
-        },
-        emailRedirectTo: 'https://calorcountai.netlify.app/login'
+        }
       }
     });
 
@@ -38,48 +36,33 @@ export async function signUp(email: string, password: string, username: string) 
     return { data: authData, error: null };
   } catch (error) {
     console.error('Sign up error:', error);
-    // Handle network issues with fetch retries
-    if (error instanceof AuthRetryableFetchError) {
-      return { data: null, error: 'Network error. Please check your internet connection or try again later.' };
-    }
     const authError = error as AuthError;
+    
     if (authError.message.includes('already registered')) {
       return { data: null, error: 'This email is already registered' };
     }
+    
     return { data: null, error: 'Failed to create account. Please try again.' };
   }
 }
 
 export async function signIn(email: string, password: string, rememberMe: boolean = false) {
-    try {
-    // Sign in with Supabase auth
+  try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
-      password
+      password,
+      options: {
+        expiresIn: rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60
+      }
     });
 
     if (error) {
-      // Handle unconfirmed email
-      if (error.message.includes('not confirmed') || error.message.includes('not verified')) {
-        throw new Error('Please verify your email address before signing in');
-      }
       if (error.message.includes('Invalid login credentials')) {
         throw new Error('Invalid email or password');
       }
       throw error;
     }
 
-    // If user chose not to be remembered, move auth tokens to sessionStorage so they clear on tab close
-    if (data.session && !rememberMe) {
-      // Transfer relevant tokens
-      ['supabase.auth.token', 'sb-access-token', 'sb-refresh-token', 'supabase.auth.refreshToken', 'supabase.auth.accessToken'].forEach((key) => {
-        const value = window.localStorage.getItem(key);
-        if (value) {
-          window.sessionStorage.setItem(key, value);
-          window.localStorage.removeItem(key);
-        }
-      });
-    }
     return { data, error: null };
   } catch (error) {
     console.error('Sign in error:', error);
@@ -108,23 +91,5 @@ export async function signOut() {
   } catch (error) {
     console.error('Sign out error:', error);
     return { error: 'Failed to sign out' };
-  }
-}
-
-// Add function to resend verification email
-export async function resendVerificationEmail(email: string) {
-  try {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email.trim().toLowerCase(),
-      options: {
-        emailRedirectTo: 'https://calorcountai.netlify.app/login'
-      }
-    });
-    if (error) throw error;
-    return { error: null };
-  } catch (error) {
-    console.error('Resend verification email error:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to resend verification email.' };
   }
 }

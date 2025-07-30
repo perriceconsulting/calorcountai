@@ -11,9 +11,6 @@ interface AchievementStore {
   getUnlockedAchievements: () => Achievement[];
   getAvailableBadges: () => Badge[];
   resetProgress: () => void;
-  // latest unlocked achievement ID for notifications
-  lastUnlocked: string | null;
-  clearLastUnlocked: () => void;
 }
 
 const initialProgress: UserProgress = {
@@ -30,7 +27,6 @@ export const useAchievementStore = create<AchievementStore>()(
   persist(
     (set, get) => ({
       progress: initialProgress,
-      lastUnlocked: null,
 
       addPoints: (points) => {
         set((state) => {
@@ -55,18 +51,18 @@ export const useAchievementStore = create<AchievementStore>()(
       },
 
       unlockAchievement: (id) => {
-        // only trigger once per unlock
         set((state) => {
           if (state.progress.achievements.includes(id)) return state;
+
           const achievement = ACHIEVEMENTS.find(a => a.id === id);
           if (!achievement) return state;
+
           return {
             progress: {
               ...state.progress,
               achievements: [...state.progress.achievements, id],
               points: state.progress.points + achievement.points
-            },
-            lastUnlocked: id
+            }
           };
         });
       },
@@ -93,8 +89,6 @@ export const useAchievementStore = create<AchievementStore>()(
       },
 
       resetProgress: () => set({ progress: initialProgress })
-      ,
-      clearLastUnlocked: () => set({ lastUnlocked: null })
     }),
     {
       name: 'achievement-store'

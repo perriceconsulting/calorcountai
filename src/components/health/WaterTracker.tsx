@@ -1,12 +1,12 @@
+import React from 'react';
 import { Droplet, Plus, Minus } from 'lucide-react';
 import { useHealthStore } from '../../store/healthStore';
 import { InfoTooltip } from '../accessibility/Tooltip';
 
 export function WaterTracker() {
   const { waterIntake, addWater, removeWater } = useHealthStore();
-  const GLASS_OZ = 8;
-  const DAILY_GOAL_OZ = 8 * GLASS_OZ; // 64 oz per day
-  const progress = (waterIntake / DAILY_GOAL_OZ) * 100;
+  const goal = 8; // 8 glasses per day
+  const progress = (waterIntake / goal) * 100;
 
   return (
     <div>
@@ -17,7 +17,7 @@ export function WaterTracker() {
           <InfoTooltip content="Track glasses of water (250ml each)" />
         </div>
         <div className="text-sm text-gray-600">
-          Goal: {DAILY_GOAL_OZ} oz
+          Goal: {goal} glasses
         </div>
       </div>
 
@@ -58,7 +58,7 @@ export function WaterTracker() {
         <p className="text-xs text-gray-500 text-center">
           {waterIntake === 0 
             ? "Track your water intake by clicking + above"
-            : `${DAILY_GOAL_OZ - waterIntake} oz to reach your goal`
+            : `${goal - waterIntake} more glasses to reach your goal`
           }
         </p>
       </div>

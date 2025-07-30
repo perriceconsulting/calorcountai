@@ -1,16 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CalendarDay } from './CalendarDay';
 import { useCalendarData } from '../../hooks/useCalendarData';
-import { useFoodStore } from '../../store/foodStore';
 
 export function CalendarView() {
-  const fetchEntries = useFoodStore(s => s.fetchEntries);
-
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const { days, monthYear } = useCalendarData(currentDate);
 

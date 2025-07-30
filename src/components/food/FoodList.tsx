@@ -1,3 +1,4 @@
+import React from 'react';
 import { Utensils, Camera } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
 import { useDateStore } from '../../store/dateStore';
@@ -30,8 +31,8 @@ export function FoodList() {
 
   return (
     <div className="space-y-4">
-      {filteredEntries.map((entry) => (
-        <FoodCard key={entry.id} food={entry} />
+      {filteredEntries.map((entry, index) => (
+        <FoodCard key={index} food={entry} />
       ))}
     </div>
   );

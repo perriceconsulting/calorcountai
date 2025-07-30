@@ -1,3 +1,0 @@
-functions:
-  cron-daily-check:
-    schedule: 'daily'

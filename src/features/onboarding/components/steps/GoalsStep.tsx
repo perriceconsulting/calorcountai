@@ -13,7 +13,7 @@ export function GoalsStep({ onNext, onBack }: StepProps) {
         This helps us personalize your macro targets and recommendations
       </p>
 
-      <div className="grid gap-4 mb-8">
+      <div className="grid gap-4 mb-4">
         <GoalOption
           title="Lose Weight"
           description="Create a caloric deficit with balanced macros"
@@ -33,6 +33,22 @@ export function GoalsStep({ onNext, onBack }: StepProps) {
           onClick={() => setPreferences({ fitnessGoal: 'gain' })}
         />
       </div>
+      {/* Target weight input for lose/gain goals */}
+      {preferences.fitnessGoal !== 'maintain' && (
+        <div className="mb-8">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Target Weight (kg)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={preferences.targetWeight ?? ''}
+            onChange={e => setPreferences({ targetWeight: e.target.value ? parseFloat(e.target.value) : undefined })}
+            className="w-full rounded-lg border-gray-300"
+          />
+        </div>
+      )}
 
       <div className="flex justify-between">
         <button

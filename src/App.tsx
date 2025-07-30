@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './features/auth/components/AuthProvider';
 import { AuthGuard } from './features/auth/components/AuthGuard';
@@ -11,7 +12,6 @@ import { LeaderboardPage } from './components/social/LeaderboardPage';
 import { CommunityPage } from './features/community/components/CommunityPage';
 import { GamificationPage } from './features/gamification/components/GamificationPage';
 import { ToastContainer } from './components/feedback/Toast';
-import { DashboardPage } from './components/dashboard/DashboardPage';
 
 export default function App() {
   return (
@@ -21,18 +21,17 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/signup" element={<SignUpForm />} />
-
+          
           {/* Protected routes */}
           <Route element={<AuthGuard />}>
-            {/* Wrap everything in Layout so navigation is client-side only */}
+            <Route path="/onboarding" element={<OnboardingWizard />} />
+            
             <Route element={<Layout />}>
-              <Route path="/onboarding" element={<OnboardingWizard />} />
               <Route path="/" element={<TrackingPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/achievements" element={<GamificationPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
             </Route>
           </Route>
         </Routes>

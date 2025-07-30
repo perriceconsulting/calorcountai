@@ -1,24 +1,83 @@
-// Client-side wrapper calling Netlify Function for image analysis
+import OpenAI from 'openai';
+import { OPENAI_CONFIG } from '../config/openai';
+import { cleanJsonResponse, safeJsonParse } from '../utils/jsonParser';
+import { convertDataURLToBase64 } from '../utils/canvasUtils';
 import type { FoodAnalysis } from '../types/food';
 
-// Base URL for Netlify functions (override via VITE_API_BASE_URL if needed)
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const ANALYZE_FOOD_URL = `${API_BASE}/.netlify/functions/analyze-food`;
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
 
 export async function analyzeFoodImage(dataURL: string): Promise<FoodAnalysis | null> {
   try {
-    const res = await fetch(ANALYZE_FOOD_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dataURL }),
-    });
-    if (!res.ok) {
-      const errMsg = await res.text();
-      throw new Error(`Analysis API error: ${res.status} ${res.statusText} - ${errMsg}`);
+    if (!dataURL.startsWith('data:image/')) {
+      throw new Error('Invalid image format');
     }
-    return await res.json() as FoodAnalysis;
-  } catch (err) {
-    console.error('analyzeFoodImage error:', err);
-    throw err instanceof Error ? err : new Error('Unknown error');
+
+    // Convert data URL to base64
+    const base64Image = convertDataURLToBase64(dataURL);
+    if (!base64Image) {
+      throw new Error('Failed to convert image to base64');
+    }
+
+    // Validate API key
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is missing');
+    }
+
+    const response = await openai.chat.completions.create({
+      model: OPENAI_CONFIG.model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { 
+              type: "text", 
+              text: OPENAI_CONFIG.promptTemplate 
+            },
+            { 
+              type: "image_url", 
+              image_url: { 
+                url: `data:image/jpeg;base64,${base64Image}`
+              } 
+            }
+          ]
+        }
+      ],
+      max_tokens: OPENAI_CONFIG.maxTokens,
+      temperature: 0.3
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+    
+    const cleanedContent = cleanJsonResponse(content);
+    const parsed = safeJsonParse<FoodAnalysis>(cleanedContent);
+    
+    if (!parsed) {
+      throw new Error('Failed to parse OpenAI response');
+    }
+
+    // Validate the parsed response
+    if (!parsed.description || !parsed.macros || 
+        typeof parsed.macros.calories !== 'number' ||
+        typeof parsed.macros.protein !== 'number' ||
+        typeof parsed.macros.fat !== 'number' ||
+        typeof parsed.macros.carbs !== 'number') {
+      throw new Error('Invalid response structure from OpenAI');
+    }
+
+    return parsed;
+  } catch (error) {
+    // Log detailed error for debugging
+    console.error('Error analyzing food image:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return null;
   }
 }

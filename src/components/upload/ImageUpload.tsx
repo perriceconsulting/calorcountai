@@ -1,5 +1,4 @@
-import { useState, useRef } from 'react';
-import { compressImage } from '../../utils/imageCompression';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { useFoodStore } from '../../store/foodStore';
@@ -11,171 +10,105 @@ import { UploadStatus } from './UploadStatus';
 import type { MealType } from '../../types/meals';
 
 export function ImageUpload() {
-  // Detect mobile devices (Android & iOS browsers)
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-
-  const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
   const [uploadStatus, setUploadStatus] = useState<'uploading' | 'analyzing' | 'error' | null>(null);
   const [error, setError] = useState<string>();
   const { addFoodEntry, setIsAnalyzing } = useFoodStore();
   const { addToast } = useToastStore();
-  // Ref and handler for explicit camera capture on mobile
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const handleCameraCapture = () => {
-    cameraInputRef.current?.click();
-  };
 
-  const handleUpload = (file: File) => {
-    // Ensure a meal type is selected before uploading
-    if (!selectedMealType) {
-      addToast('Please select a meal type before uploading', 'error');
-      return;
-    }
+  const handleUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       addToast('Please upload an image file', 'error');
       return;
     }
 
-    // Initialize reader and states
-    const reader = new FileReader();
-    setUploadStatus('uploading');
-    setIsAnalyzing(true);
-
-    reader.onload = async () => {
-        // Read raw data URL
-        let imageData = reader.result as string;
-        // Compress large images for mobile
+    try {
+      setUploadStatus('uploading');
+      setIsAnalyzing(true);
+      
+      const reader = new FileReader();
+      
+      reader.onload = async () => {
         try {
-          imageData = await compressImage(imageData, 300 * 1024); // target ~300KB
-        } catch (e) {
-          console.warn('Compression failed, using original image', e);
-        }
-        // Step 1: Upload
-        let imageUrl: string;
-        try {
-          setUploadStatus('uploading');
-          const result = await uploadFoodImage(imageData);
-          if (!result) throw new Error('Failed to upload image');
-          imageUrl = result;
-        } catch (uploadError: any) {
-          setUploadStatus('error');
-          const msg = uploadError.message || 'Failed to upload image';
-          setError(msg);
-          addToast(msg, 'error');
-          console.error('Error uploading image:', uploadError);
-          // Reset state after displaying the error
-          setTimeout(() => {
-            setUploadStatus(null);
-            setError(undefined);
-            setIsAnalyzing(false);
-          }, 3000);
-          return;
-        }
-        // Step 2: Analyze using the compressed DataURL
-        try {
+          const imageData = reader.result as string;
           setUploadStatus('analyzing');
-          console.debug('Analyzing inline DataURL, size:', imageData.length);
+          
+          // Upload to storage first
+          const imageUrl = await uploadFoodImage(imageData);
+          if (!imageUrl) {
+            throw new Error('Failed to upload image');
+          }
+
           const analysis = await analyzeFoodImage(imageData);
-          if (!analysis) throw new Error('Could not analyze the food image');
+          if (!analysis) {
+            throw new Error('Could not analyze the food image');
+          }
+
           await addFoodEntry({
             ...analysis,
             imageUrl,
             timestamp: new Date().toISOString(),
             mealType: selectedMealType,
           });
-          addToast('Food analyzed and added successfully', 'success');
-        } catch (analysisError: any) {
-          setUploadStatus('error');
-          const msg = analysisError.message || 'Failed to analyze food image';
-          setError(msg);
-          addToast(msg, 'error');
-          console.error('Error analyzing image:', analysisError);
-        } finally {
-          // Reset state after finishing
-          setTimeout(() => {
-            setUploadStatus(null);
-            setError(undefined);
-            setIsAnalyzing(false);
-          }, 3000);
-        }
-    };
 
-    reader.onerror = () => {
-      setUploadStatus('error');
-      setError('Failed to read image file');
-      addToast('Failed to read image file', 'error');
-      // schedule state reset after error
-      const resetError = () => {
+          addToast('Food analyzed and added successfully', 'success');
+        } catch (error) {
+          setUploadStatus('error');
+          setError('Failed to analyze food image. Please try again.');
+          addToast('Failed to analyze food image', 'error');
+          console.error('Error analyzing image:', error);
+        }
+      };
+
+      reader.onerror = () => {
+        setUploadStatus('error');
+        setError('Failed to read image file');
+        addToast('Failed to read image file', 'error');
+      };
+
+      reader.readAsDataURL(file);
+    } finally {
+      setTimeout(() => {
         setUploadStatus(null);
         setError(undefined);
         setIsAnalyzing(false);
-      };
-      setTimeout(resetError, 3000);
-    };
-
-    reader.readAsDataURL(file);
+      }, 3000);
+    }
   };
 
-
-  const onDrop = (acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) handleUpload(file);
-  };
+    if (file) {
+      handleUpload(file);
+    }
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    disabled: !selectedMealType,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png']
+    },
     maxFiles: 1,
-    multiple: false,
+    multiple: false
   });
 
   return (
     <div className="space-y-4">
       <MealTypeSelector value={selectedMealType} onChange={setSelectedMealType} />
-
+      
       <div className="relative" {...getRootProps()}>
-        <input
-          {...getInputProps()}
-          accept="image/*"
-          capture={isMobile ? 'environment' : undefined}
-        />
+        <input {...getInputProps()} />
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
             {isDragActive
-              ? 'Drop the image here'
-              : 'Drag & drop a food image, or click to select'}
+              ? "Drop the image here"
+              : "Drag & drop a food image, or click to select"}
           </p>
         </div>
+        
         <UploadStatus status={uploadStatus} error={error} />
-        {!selectedMealType && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
-            <p className="text-gray-500">Select a meal type to enable upload</p>
-          </div>
-        )}
       </div>
-
-      {/* Mobile camera option */}
-      {isMobile && (
-        <>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={e => e.target.files && e.target.files[0] && handleUpload(e.target.files[0])}
-            hidden
-          />
-          <button
-            type="button"
-            onClick={handleCameraCapture}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-          >
-            Use Camera
-          </button>
-        </>
-      )}
     </div>
   );
 }

@@ -1,21 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/supabase';
 
-// read environment variables
-// DEBUG: dump all env vars Vite loaded
-console.log('import.meta.env:', import.meta.env);
-// debug output: verify env loading
-// Always use hosted Supabase Cloud instance
-const supabaseUrl = 'https://gbycvrxgqpbkccquglxe.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieWN2cnhncXBia2NjcXVnbHhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NjQ3NzksImV4cCI6MjA2OTE0MDc3OX0.uzrIKLVQuJKyTUtkldA20_Ohq3S0QfYmK9JId9NU5Mo';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Ensure environment variables are present
-// Remove the check for environment variables as we are using hard-coded values
-// if (!supabaseUrl || !supabaseAnonKey) {
-//   throw new Error('Missing Supabase environment variables');
-// }
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -58,8 +51,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 // Initialize session recovery
 supabase.auth.onAuthStateChange((event, session) => {
-  // Only handle sign-out events (USER_DELETED removed to match AuthChangeEvent types)
-  if (event === 'SIGNED_OUT') {
+  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
     // Clear all auth data
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('sb-access-token');

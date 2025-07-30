@@ -29,8 +29,8 @@ export function AuthGuard() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to onboarding if not completed
-  if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+  // Redirect to onboarding if no profile or onboarding not completed
+  if ((!profile || !profile.onboarding_completed) && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

@@ -7,7 +7,7 @@ interface CalendarDayProps {
   day: DayData;
 }
 
-function CalendarDayComponent({ day }: CalendarDayProps) {
+export function CalendarDay({ day }: CalendarDayProps) {
   const getStatusColor = () => {
     if (!day.hasData) return 'bg-gray-100';
     return day.goalsStatus === 'success' ? 'bg-green-50' : 'bg-red-50';
@@ -36,6 +36,3 @@ function CalendarDayComponent({ day }: CalendarDayProps) {
     </div>
   );
 }
-
-// Prevent unnecessary re-renders when props don't change
-export const CalendarDay = React.memo(CalendarDayComponent);

@@ -2,9 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../../../lib/supabase';
-import { useToastStore } from '../../../store/toastStore';
+import { useToastStore } from '../../../components/feedback/Toast';
 import { useProfile } from './useProfile';
-import { useFavoritesStore } from '../../../store/favoritesStore';
 
 export function useAuth() {
   const navigate = useNavigate();
@@ -34,12 +33,6 @@ export function useAuth() {
           setUser(session.user);
           setSession(session);
           await fetchProfile();
-          // Load user's favorites after profile is loaded
-          try {
-            await useFavoritesStore.getState().loadFavorites();
-          } catch (favErr) {
-            console.error('Failed to load favorites:', favErr);
-          }
         } else {
           setUser(null);
           setSession(null);

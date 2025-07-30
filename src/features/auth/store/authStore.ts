@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../../../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+import { signIn as serviceSignIn } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthState {
   signIn: (email: string, password: string, rememberMe: boolean) => Promise<{ error?: string }>;
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  resendVerification: (email: string) => Promise<{ error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -25,37 +27,20 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signIn: async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password
-      });
-
-      if (error) throw error;
+      const { data, error } = await serviceSignIn(email, password, rememberMe);
+      if (error) throw new Error(error);
       if (!data?.user) throw new Error('No user returned');
-      
-      // If not 'remember me', keep session only in sessionStorage
-      if (data.session && !rememberMe) {
-        ['supabase.auth.token', 'sb-access-token', 'sb-refresh-token', 'supabase.auth.refreshToken', 'supabase.auth.accessToken'].forEach((key) => {
-          const val = window.localStorage.getItem(key);
-          if (val) {
-            window.sessionStorage.setItem(key, val);
-            window.localStorage.removeItem(key);
-          }
-        });
-      }
       set({ user: data.user, session: data.session });
       return {};
     } catch (error) {
       console.error('Sign in error:', error);
-      return { 
-        error: error instanceof Error ? error.message : 'Invalid login credentials'
-      };
+      return { error: error instanceof Error ? error.message : 'Invalid login credentials' };
     }
   },
 
   signUp: async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password
       });
@@ -81,6 +66,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw error;
     } finally {
       set({ loading: false });
+    }
+  },
+
+  resendVerification: async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resendVerificationEmail({ email: email.trim().toLowerCase() });
+      if (error) throw error;
+      return {};
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      return { error: error instanceof Error ? error.message : 'Failed to resend verification email' };
     }
   }
 }));

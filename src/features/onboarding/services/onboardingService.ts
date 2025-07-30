@@ -11,6 +11,7 @@ export async function completeOnboarding(userId: string, preferences: Onboarding
         preferences,
         activity_level: preferences.activityLevel,
         fitness_goal: preferences.fitnessGoal,
+        target_weight: preferences.targetWeight ?? null,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
